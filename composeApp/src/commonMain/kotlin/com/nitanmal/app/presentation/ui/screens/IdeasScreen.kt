@@ -1,5 +1,6 @@
 package com.nitanmal.app.presentation.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +20,8 @@ import com.nitanmal.app.domain.model.NOTA_EMOJIS
 import com.nitanmal.app.domain.model.NOTA_ETIQUETAS
 import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.NotaEstado
+import com.nitanmal.app.domain.repository.AudioAdjunto
+import com.nitanmal.app.domain.util.createAudioRecorder
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalTextField
 import com.nitanmal.app.presentation.ui.components.molecules.EstadoChip
@@ -26,6 +29,7 @@ import com.nitanmal.app.presentation.ui.components.molecules.EtiquetaChip
 import com.nitanmal.app.presentation.ui.components.molecules.ReaccionesRow
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,8 +134,8 @@ fun IdeasScreen(
         CreateIdeaSheet(
             isCreating = uiState.isCreating,
             onDismiss = { viewModel.setShowCreateSheet(false) },
-            onCreate = { titulo, contenido, etiquetas ->
-                viewModel.create(titulo, contenido, etiquetas)
+            onCreate = { titulo, contenido, etiquetas, audio ->
+                viewModel.create(titulo, contenido, etiquetas, audio)
             }
         )
     }
@@ -295,14 +299,36 @@ private fun MetaCounter(
 private fun CreateIdeaSheet(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (titulo: String, contenido: String, etiquetas: List<String>) -> Unit
+    onCreate: (titulo: String, contenido: String, etiquetas: List<String>, audio: AudioAdjunto?) -> Unit
 ) {
     val strings = rememberStrings()
     var titulo by remember { mutableStateOf("") }
     var contenido by remember { mutableStateOf("") }
     var seleccionadas by remember { mutableStateOf(setOf<String>()) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // ── Grabación de audio ──
+    val recorder = remember { createAudioRecorder() }
+    var isRecording by remember { mutableStateOf(false) }
+    var audioBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var segundos by remember { mutableStateOf(0) }
+    var duracion by remember { mutableStateOf(0) }
+    var micDenegado by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRecording) {
+        segundos = 0
+        while (isRecording) {
+            kotlinx.coroutines.delay(1000)
+            segundos++
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { recorder.cancel() }
+    }
+
+    ModalBottomSheet(onDismissRequest = {
+        recorder.cancel()
+        onDismiss()
+    }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -380,14 +406,141 @@ private fun CreateIdeaSheet(
                 }
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            // ── Audio ──
+            when {
+                isRecording -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Icon(
+                            AppIcons2.Mic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = "${strings.ideasGrabando} ${segundos}s",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilledIconButton(
+                            onClick = {
+                                duracion = segundos
+                                audioBytes = recorder.stop()
+                                isRecording = false
+                            },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(AppIcons2.Stop, contentDescription = "Detener", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
+                audioBytes != null -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f))
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Icon(
+                            AppIcons2.Mic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = "${strings.ideasAudioListo} (${duracion}s)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { audioBytes = null },
+                            modifier = Modifier.size(32.dp),
+                            enabled = !isCreating
+                        ) {
+                            Icon(
+                                AppIcons2.Delete,
+                                contentDescription = "Descartar audio",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+
+                else -> {
+                    OutlinedButton(
+                        onClick = {
+                            micDenegado = false
+                            recorder.requestPermission { granted ->
+                                if (granted) {
+                                    if (recorder.start()) isRecording = true
+                                } else {
+                                    micDenegado = true
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isCreating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(AppIcons2.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(strings.ideasGrabar)
+                    }
+                    if (micDenegado) {
+                        Text(
+                            text = strings.ideasMicPermiso,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
 
             NitanmalButton(
                 text = strings.ideasPublicar,
-                onClick = { onCreate(titulo, contenido, seleccionadas.toList()) },
+                onClick = {
+                    if (isRecording) {
+                        duracion = segundos
+                        audioBytes = recorder.stop()
+                        isRecording = false
+                    }
+                    val audio = audioBytes?.let {
+                        AudioAdjunto(
+                            bytes = it,
+                            filename = "idea-${Random.nextLong().toString(16)}.${recorder.fileExtension}",
+                            contentType = recorder.mimeType
+                        )
+                    }
+                    onCreate(titulo, contenido, seleccionadas.toList(), audio)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = isCreating,
-                enabled = !isCreating && (titulo.isNotBlank() || contenido.isNotBlank())
+                enabled = !isCreating &&
+                    (titulo.isNotBlank() || contenido.isNotBlank() || audioBytes != null)
             )
         }
     }

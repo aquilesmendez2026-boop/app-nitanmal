@@ -39,7 +39,22 @@ data class PreguntasResponse(val preguntas: List<Pregunta> = emptyList(), val er
 data class NotaInput(
     @EncodeDefault(EncodeDefault.Mode.NEVER) val titulo: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER) val contenido: String? = null,
-    @EncodeDefault(EncodeDefault.Mode.NEVER) val etiquetas: List<String>? = null
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val etiquetas: List<String>? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val audios: List<MediaRef>? = null
+)
+
+/** Referencia a un archivo ya subido a S3 (key devuelta por /notas-upload). */
+@Serializable
+data class MediaRef(val key: String, val nombre: String)
+
+@Serializable
+data class UploadRequest(val filename: String, val contentType: String)
+
+@Serializable
+data class UploadUrlResponse(
+    val uploadUrl: String? = null,
+    val key: String? = null,
+    val error: String? = null
 )
 
 @Serializable

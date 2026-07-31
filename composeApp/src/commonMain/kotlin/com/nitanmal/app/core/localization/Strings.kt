@@ -55,6 +55,10 @@ data class AppStrings(
     val ideasFijar: String,
     val ideasEnlaces: String,
     val ideasAudios: String,
+    val ideasGrabar: String,
+    val ideasGrabando: String,
+    val ideasAudioListo: String,
+    val ideasMicPermiso: String,
     val ideasConvertir: String,
     val ideasConvertirConfirm: String,
 
@@ -152,6 +156,10 @@ private val SpanishStrings = AppStrings(
     ideasFijar = "Fijar",
     ideasEnlaces = "Enlaces",
     ideasAudios = "Audios",
+    ideasGrabar = "Grabar audio",
+    ideasGrabando = "Grabando…",
+    ideasAudioListo = "Audio grabado",
+    ideasMicPermiso = "Permiso de micrófono denegado",
     ideasConvertir = "Convertir a episodio",
     ideasConvertirConfirm = "Se creará un episodio en producción con esta idea y la idea quedará como Convertida.",
 
@@ -243,6 +251,10 @@ private val EnglishStrings = AppStrings(
     ideasFijar = "Pin",
     ideasEnlaces = "Links",
     ideasAudios = "Audios",
+    ideasGrabar = "Record audio",
+    ideasGrabando = "Recording…",
+    ideasAudioListo = "Audio recorded",
+    ideasMicPermiso = "Microphone permission denied",
     ideasConvertir = "Convert to episode",
     ideasConvertirConfirm = "A production episode will be created from this idea and the idea will be marked as Converted.",
 

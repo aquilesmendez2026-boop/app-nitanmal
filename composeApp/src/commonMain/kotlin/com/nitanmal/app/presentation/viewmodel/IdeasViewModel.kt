@@ -3,6 +3,7 @@ package com.nitanmal.app.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nitanmal.app.domain.model.Nota
+import com.nitanmal.app.domain.repository.AudioAdjunto
 import com.nitanmal.app.domain.repository.TeamRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,10 +48,15 @@ class IdeasViewModel(
         _uiState.value = _uiState.value.copy(showCreateSheet = show)
     }
 
-    fun create(titulo: String, contenido: String, etiquetas: List<String>) {
+    fun create(
+        titulo: String,
+        contenido: String,
+        etiquetas: List<String>,
+        audio: AudioAdjunto? = null
+    ) {
         _uiState.value = _uiState.value.copy(isCreating = true, error = null)
         viewModelScope.launch {
-            repository.createNota(titulo, contenido, etiquetas)
+            repository.createNota(titulo, contenido, etiquetas, audio)
                 .onSuccess { nota ->
                     _uiState.value = _uiState.value.copy(
                         isCreating = false,

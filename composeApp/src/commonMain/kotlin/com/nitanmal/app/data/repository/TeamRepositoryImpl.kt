@@ -2,6 +2,7 @@ package com.nitanmal.app.data.repository
 
 import com.nitanmal.app.data.remote.ITeamApiService
 import com.nitanmal.app.data.remote.TeamApiService
+import com.nitanmal.app.data.remote.model.MediaRef
 import com.nitanmal.app.data.remote.model.NotaInput
 import com.nitanmal.app.data.remote.model.ProduccionCreateInput
 import com.nitanmal.app.data.remote.model.ProduccionUpdateInput
@@ -14,6 +15,7 @@ import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.Notificacion
 import com.nitanmal.app.domain.model.Pregunta
 import com.nitanmal.app.domain.model.Reunion
+import com.nitanmal.app.domain.repository.AudioAdjunto
 import com.nitanmal.app.domain.repository.TeamRepository
 
 class TeamRepositoryImpl(
@@ -42,15 +44,22 @@ class TeamRepositoryImpl(
     override suspend fun createNota(
         titulo: String?,
         contenido: String?,
-        etiquetas: List<String>
-    ): Result<Nota> = call {
+        etiquetas: List<String>,
+        audio: AudioAdjunto?
+    ): Result<Nota> = call { token ->
+        // Si hay audio grabado, primero se sube a S3 vía /notas-upload.
+        val audios = audio?.let {
+            val key = apiService.uploadNotaMedia(token, it.filename, it.contentType, it.bytes)
+            listOf(MediaRef(key = key, nombre = it.filename))
+        }
         requireNota(
             apiService.createNota(
-                it,
+                token,
                 NotaInput(
                     titulo = titulo?.takeIf { t -> t.isNotBlank() },
                     contenido = contenido?.takeIf { c -> c.isNotBlank() },
-                    etiquetas = etiquetas.takeIf { e -> e.isNotEmpty() }
+                    etiquetas = etiquetas.takeIf { e -> e.isNotEmpty() },
+                    audios = audios
                 )
             ).nota
         )

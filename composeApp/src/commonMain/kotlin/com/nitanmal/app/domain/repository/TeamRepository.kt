@@ -8,10 +8,22 @@ import com.nitanmal.app.domain.model.Notificacion
 import com.nitanmal.app.domain.model.Pregunta
 import com.nitanmal.app.domain.model.Reunion
 
+/** Audio grabado pendiente de subir junto con una idea. */
+data class AudioAdjunto(
+    val bytes: ByteArray,
+    val filename: String,
+    val contentType: String
+)
+
 interface TeamRepository {
     // Ideas
     suspend fun listNotas(): Result<List<Nota>>
-    suspend fun createNota(titulo: String?, contenido: String?, etiquetas: List<String>): Result<Nota>
+    suspend fun createNota(
+        titulo: String?,
+        contenido: String?,
+        etiquetas: List<String>,
+        audio: AudioAdjunto? = null
+    ): Result<Nota>
     suspend fun deleteNota(id: String): Result<Unit>
     suspend fun reaccionarNota(id: String, emoji: String): Result<Nota>
     suspend fun comentarNota(id: String, texto: String): Result<Nota>

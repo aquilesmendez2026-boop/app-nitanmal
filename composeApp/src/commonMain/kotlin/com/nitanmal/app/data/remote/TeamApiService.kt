@@ -19,6 +19,8 @@ import com.nitanmal.app.data.remote.model.ReaccionInput
 import com.nitanmal.app.data.remote.model.ReunionInput
 import com.nitanmal.app.data.remote.model.ReunionResponse
 import com.nitanmal.app.data.remote.model.ReunionesResponse
+import com.nitanmal.app.data.remote.model.UploadRequest
+import com.nitanmal.app.data.remote.model.UploadUrlResponse
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -28,6 +30,9 @@ interface ITeamApiService {
     // Ideas ("notas")
     suspend fun listNotas(token: String): NotasResponse
     suspend fun createNota(token: String, input: NotaInput): NotaResponse
+
+    /** Pide URL firmada de subida y sube los bytes a S3. Devuelve la key. */
+    suspend fun uploadNotaMedia(token: String, filename: String, contentType: String, bytes: ByteArray): String
     suspend fun deleteNota(token: String, id: String)
     suspend fun reaccionarNota(token: String, id: String, emoji: String): NotaResponse
     suspend fun comentarNota(token: String, id: String, texto: String): NotaResponse
@@ -106,6 +111,37 @@ class TeamApiService : ITeamApiService {
 
     override suspend fun createNota(token: String, input: NotaInput): NotaResponse =
         request(HttpMethod.Post, "/notas", token, input)
+
+    override suspend fun uploadNotaMedia(
+        token: String,
+        filename: String,
+        contentType: String,
+        bytes: ByteArray
+    ): String {
+        val upload: UploadUrlResponse =
+            request(HttpMethod.Post, "/notas-upload", token, UploadRequest(filename, contentType))
+        val uploadUrl = upload.uploadUrl
+        val key = upload.key
+        if (uploadUrl == null || key == null) {
+            throw RuntimeException(upload.error ?: "El backend no devolvió la URL de subida")
+        }
+        Logger.d("TeamApi", "PUT S3 ${bytes.size} bytes → $key")
+        try {
+            val response = client.put(uploadUrl) {
+                // URL prefirmada: sin Authorization; Content-Type debe coincidir
+                // con el declarado al firmar.
+                contentType(ContentType.parse(contentType))
+                setBody(bytes)
+            }
+            if (!response.status.isSuccess()) {
+                throw RuntimeException("Subida a S3 falló: HTTP ${response.status.value}")
+            }
+        } catch (e: Exception) {
+            Logger.d("TeamApi", "EXCEPTION subida S3: ${e::class.simpleName}: ${e.message}")
+            throw e.toNetworkException()
+        }
+        return key
+    }
 
     override suspend fun deleteNota(token: String, id: String) =
         request<Unit>(HttpMethod.Delete, "/notas/$id", token)
