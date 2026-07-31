@@ -78,6 +78,10 @@ kotlin {
 
             // Coroutines Play Services (Task.await())
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+            // ExoPlayer (media3) — MediaPlayer no reproduce bien webm/opus
+            // (los audios de las ideas se graban en el web con MediaRecorder).
+            implementation("androidx.media3:media3-exoplayer:1.4.1")
         }
 
         iosMain.dependencies {

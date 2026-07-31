@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
 import com.nitanmal.app.auth.AndroidPlatformAuth
+import com.nitanmal.app.core.config.AppContextHolder
 import com.nitanmal.app.domain.auth.LocalPlatformAuth
 import com.nitanmal.app.domain.util.LocalActivity
 
@@ -18,6 +19,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        AppContextHolder.context = applicationContext
         platformAuth = AndroidPlatformAuth(this)
 
         platformAuth.signInLauncher = registerForActivityResult(
