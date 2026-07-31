@@ -40,19 +40,24 @@ fun NitanmalNavigationBar(
         AppIcons2.Mail
     )
 
-    val homeRouteName       = HomeRoute::class.qualifiedName
-    val ideasRouteName      = IdeasRoute::class.qualifiedName
-    val produccionRouteName = ProduccionRoute::class.qualifiedName
-    val reunionesRouteName  = ReunionesRoute::class.qualifiedName
-    val buzonRouteName      = BuzonRoute::class.qualifiedName
+    val homeRouteName        = HomeRoute::class.qualifiedName
+    val ideasRouteName       = IdeasRoute::class.qualifiedName
+    val produccionRouteName  = ProduccionRoute::class.qualifiedName
+    val reunionesRouteName   = ReunionesRoute::class.qualifiedName
+    val buzonRouteName       = BuzonRoute::class.qualifiedName
+    // Los detalles pertenecen a su pestaña: la navbar los marca como tal.
+    val ideaDetailRouteName  = IdeaDetailRoute::class.qualifiedName
+    val episodioDetailRouteName = EpisodioDetailRoute::class.qualifiedName
 
-    val selectedIndex = when (currentRoute) {
-        homeRouteName       -> 0
-        ideasRouteName      -> 1
-        produccionRouteName -> 2
-        reunionesRouteName  -> 3
-        buzonRouteName      -> 4
-        else                -> 0
+    val selectedIndex = when {
+        currentRoute == homeRouteName -> 0
+        currentRoute == ideasRouteName -> 1
+        currentRoute == produccionRouteName -> 2
+        currentRoute == reunionesRouteName -> 3
+        currentRoute == buzonRouteName -> 4
+        ideaDetailRouteName != null && currentRoute?.startsWith(ideaDetailRouteName) == true -> 1
+        episodioDetailRouteName != null && currentRoute?.startsWith(episodioDetailRouteName) == true -> 2
+        else -> 0
     }
 
     val colorScheme = MaterialTheme.colorScheme

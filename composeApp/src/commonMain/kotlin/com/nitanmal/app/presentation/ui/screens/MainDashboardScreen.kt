@@ -102,10 +102,14 @@ fun MainDashboardScreen(
                         onGoToSettings = {
                             navController.navigate(SettingsRoute) { launchSingleTop = true }
                         },
+                        // Desde Inicio: primero a la pestaña y luego al detalle,
+                        // para que atrás caiga en la lista y la navbar marque la pestaña.
                         onOpenIdea = { notaId ->
+                            navController.navigate(IdeasRoute) { launchSingleTop = true }
                             navController.navigate(IdeaDetailRoute(notaId))
                         },
                         onOpenEpisodio = { episodioId ->
+                            navController.navigate(ProduccionRoute) { launchSingleTop = true }
                             navController.navigate(EpisodioDetailRoute(episodioId))
                         }
                     )
