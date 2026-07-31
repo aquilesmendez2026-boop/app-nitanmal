@@ -3,10 +3,12 @@ package com.nitanmal.app.data.remote
 import com.nitanmal.app.core.logger.Logger
 import com.nitanmal.app.data.remote.model.AnsweredInput
 import com.nitanmal.app.data.remote.model.ComentarioInput
+import com.nitanmal.app.data.remote.model.ConvertirResponse
 import com.nitanmal.app.data.remote.model.EstadoInput
 import com.nitanmal.app.data.remote.model.NotaInput
 import com.nitanmal.app.data.remote.model.NotaResponse
 import com.nitanmal.app.data.remote.model.NotasResponse
+import com.nitanmal.app.data.remote.model.NotificacionesResponse
 import com.nitanmal.app.data.remote.model.PreguntasResponse
 import com.nitanmal.app.data.remote.model.ReaccionInput
 import io.ktor.client.call.*
@@ -24,11 +26,16 @@ interface ITeamApiService {
     suspend fun borrarComentario(token: String, id: String, comentarioId: String): NotaResponse
     suspend fun setNotaEstado(token: String, id: String, estado: String): NotaResponse
     suspend fun togglePinNota(token: String, id: String): NotaResponse
+    suspend fun convertirNota(token: String, id: String): ConvertirResponse
 
     // Buzón ("preguntas")
     suspend fun listPreguntas(token: String): PreguntasResponse
     suspend fun setPreguntaAnswered(token: String, id: String, answered: Boolean)
     suspend fun deletePregunta(token: String, id: String)
+
+    // Notificaciones
+    suspend fun listNotificaciones(token: String): NotificacionesResponse
+    suspend fun marcarNotificacionesLeidas(token: String)
 }
 
 class TeamApiService : ITeamApiService {
@@ -91,6 +98,9 @@ class TeamApiService : ITeamApiService {
     override suspend fun togglePinNota(token: String, id: String): NotaResponse =
         request(HttpMethod.Put, "/notas/$id/pin", token)
 
+    override suspend fun convertirNota(token: String, id: String): ConvertirResponse =
+        request(HttpMethod.Post, "/notas/$id/convertir", token)
+
     // ── Buzón ──
     override suspend fun listPreguntas(token: String): PreguntasResponse =
         request(HttpMethod.Get, "/preguntas", token)
@@ -100,4 +110,11 @@ class TeamApiService : ITeamApiService {
 
     override suspend fun deletePregunta(token: String, id: String) =
         request<Unit>(HttpMethod.Delete, "/preguntas/$id", token)
+
+    // ── Notificaciones ──
+    override suspend fun listNotificaciones(token: String): NotificacionesResponse =
+        request(HttpMethod.Get, "/notificaciones", token)
+
+    override suspend fun marcarNotificacionesLeidas(token: String) =
+        request<Unit>(HttpMethod.Post, "/notificaciones/leer", token)
 }

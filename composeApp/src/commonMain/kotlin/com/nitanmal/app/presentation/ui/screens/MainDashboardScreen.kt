@@ -21,6 +21,7 @@ import com.nitanmal.app.presentation.navigation.SettingsRoute
 import com.nitanmal.app.presentation.ui.components.NitanmalNavigationBar
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
+import com.nitanmal.app.presentation.viewmodel.NotificacionesViewModel
 
 /**
  * Dashboard principal con navbar inferior (misma estructura que uminer):
@@ -40,6 +41,7 @@ fun MainDashboardScreen(
     val teamRepository = remember { TeamRepositoryImpl(platformAuth) }
     val ideasViewModel = remember { IdeasViewModel(teamRepository) }
     val buzonViewModel = remember { BuzonViewModel(teamRepository) }
+    val notificacionesViewModel = remember { NotificacionesViewModel(teamRepository) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -74,6 +76,7 @@ fun MainDashboardScreen(
                         user = user,
                         ideasViewModel = ideasViewModel,
                         buzonViewModel = buzonViewModel,
+                        notificacionesViewModel = notificacionesViewModel,
                         onGoToIdeas = {
                             navController.navigate(IdeasRoute) { launchSingleTop = true }
                         },

@@ -22,13 +22,16 @@ import com.nitanmal.app.presentation.ui.components.molecules.EstadoChip
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
+import com.nitanmal.app.presentation.viewmodel.NotificacionesViewModel
 
-/** Inicio: resumen del trabajo del equipo — ideas y buzón. */
+/** Inicio: resumen del trabajo del equipo — ideas, buzón y notificaciones. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     user: User,
     ideasViewModel: IdeasViewModel,
     buzonViewModel: BuzonViewModel,
+    notificacionesViewModel: NotificacionesViewModel,
     onGoToIdeas: () -> Unit,
     onGoToBuzon: () -> Unit,
     onOpenIdea: (String) -> Unit,
@@ -37,10 +40,13 @@ fun HomeScreen(
     val strings = rememberStrings()
     val ideasState by ideasViewModel.uiState.collectAsState()
     val buzonState by buzonViewModel.uiState.collectAsState()
+    val notifState by notificacionesViewModel.uiState.collectAsState()
+    var showNotifSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (ideasState.notas.isEmpty()) ideasViewModel.load()
         if (buzonState.preguntas.isEmpty()) buzonViewModel.load()
+        if (notifState.notificaciones.isEmpty()) notificacionesViewModel.load()
     }
 
     val ideasActivas = ideasState.notas.count {
@@ -52,7 +58,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxSize()
     ) {
-        // Saludo
+        // Saludo + campana de notificaciones
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 user.photoUrl?.let { url ->
@@ -65,7 +71,7 @@ fun HomeScreen(
                     )
                     Spacer(Modifier.width(12.dp))
                 }
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "¡Hola, ${user.name.split(" ").firstOrNull() ?: ""}!",
                         style = MaterialTheme.typography.headlineSmall,
@@ -77,6 +83,26 @@ fun HomeScreen(
                             text = role.replaceFirstChar { it.uppercase() },
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                BadgedBox(
+                    badge = {
+                        if (notifState.noLeidas > 0) {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ) { Text("${notifState.noLeidas}") }
+                        }
+                    }
+                ) {
+                    IconButton(onClick = {
+                        showNotifSheet = true
+                        notificacionesViewModel.load()
+                    }) {
+                        Icon(
+                            AppIcons2.Bell,
+                            contentDescription = strings.notifTitle,
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -190,6 +216,69 @@ fun HomeScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Hoja de notificaciones
+    if (showNotifSheet) {
+        ModalBottomSheet(onDismissRequest = {
+            showNotifSheet = false
+            notificacionesViewModel.marcarLeidas()
+        }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = strings.notifTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(12.dp))
+
+                if (notifState.notificaciones.isEmpty()) {
+                    Text(
+                        text = strings.notifVacio,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        notifState.notificaciones.take(20).forEach { notif ->
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (notif.leida) {
+                                        MaterialTheme.colorScheme.surface
+                                    } else {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                    }
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = notif.texto,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (notif.leida) FontWeight.Normal else FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = formatFecha(notif.createdAt),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                                    )
+                                }
                             }
                         }
                     }

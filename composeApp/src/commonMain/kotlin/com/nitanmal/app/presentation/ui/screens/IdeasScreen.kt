@@ -111,6 +111,19 @@ fun IdeasScreen(
                 }
             ) { Text(error) }
         }
+
+        uiState.info?.let { info ->
+            Snackbar(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                action = {
+                    TextButton(onClick = { viewModel.clearInfo() }) {
+                        Text("OK", color = MaterialTheme.colorScheme.onPrimary)
+                    }
+                }
+            ) { Text(info) }
+        }
     }
 
     if (uiState.showCreateSheet) {
@@ -220,21 +233,10 @@ fun NotaCard(
                     onReaccionar = onReaccionar,
                     modifier = Modifier.weight(1f)
                 )
-                val nComentarios = nota.comentarios?.size ?: 0
-                if (nComentarios > 0) {
-                    Icon(
-                        AppIcons2.ChatBubble,
-                        contentDescription = strings.ideasComentarios,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "$nComentarios",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
+                MetaCounter(AppIcons2.PlayArrow, nota.audios?.count { !it.url.isNullOrBlank() } ?: 0)
+                MetaCounter(AppIcons2.Image, nota.imagenes?.count { !it.url.isNullOrBlank() } ?: 0)
+                MetaCounter(AppIcons2.Link, nota.enlaces?.size ?: 0)
+                MetaCounter(AppIcons2.ChatBubble, nota.comentarios?.size ?: 0)
             }
 
             Spacer(Modifier.height(6.dp))
@@ -264,6 +266,28 @@ fun NotaCard(
             }
         )
     }
+}
+
+/** Iconito + conteo (solo si > 0) para el pie de la tarjeta. */
+@Composable
+private fun MetaCounter(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    count: Int
+) {
+    if (count <= 0) return
+    Spacer(Modifier.width(8.dp))
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+        modifier = Modifier.size(14.dp)
+    )
+    Spacer(Modifier.width(3.dp))
+    Text(
+        text = "$count",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

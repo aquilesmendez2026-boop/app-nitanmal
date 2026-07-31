@@ -215,4 +215,137 @@ object AppIcons2 {
                 close()
             }
         }
+
+    val PlayArrow: ImageVector
+        get() = icon("PlayArrow") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(8f, 5f)
+                verticalLineToRelative(14f)
+                lineToRelative(11f, -7f)
+                close()
+            }
+        }
+
+    val Stop: ImageVector
+        get() = icon("Stop") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(6f, 6f)
+                horizontalLineToRelative(12f)
+                verticalLineToRelative(12f)
+                horizontalLineTo(6f)
+                close()
+            }
+        }
+
+    val Link: ImageVector
+        get() = icon("Link") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(3.9f, 12f)
+                curveToRelative(0f, -1.71f, 1.39f, -3.1f, 3.1f, -3.1f)
+                horizontalLineToRelative(4f)
+                verticalLineTo(7f)
+                horizontalLineTo(7f)
+                curveToRelative(-2.76f, 0f, -5f, 2.24f, -5f, 5f)
+                reflectiveCurveToRelative(2.24f, 5f, 5f, 5f)
+                horizontalLineToRelative(4f)
+                verticalLineToRelative(-1.9f)
+                horizontalLineTo(7f)
+                curveToRelative(-1.71f, 0f, -3.1f, -1.39f, -3.1f, -3.1f)
+                close()
+                moveTo(8f, 13f)
+                horizontalLineToRelative(8f)
+                verticalLineToRelative(-2f)
+                horizontalLineTo(8f)
+                verticalLineToRelative(2f)
+                close()
+                moveTo(17f, 7f)
+                horizontalLineToRelative(-4f)
+                verticalLineToRelative(1.9f)
+                horizontalLineToRelative(4f)
+                curveToRelative(1.71f, 0f, 3.1f, 1.39f, 3.1f, 3.1f)
+                reflectiveCurveToRelative(-1.39f, 3.1f, -3.1f, 3.1f)
+                horizontalLineToRelative(-4f)
+                verticalLineTo(17f)
+                horizontalLineToRelative(4f)
+                curveToRelative(2.76f, 0f, 5f, -2.24f, 5f, -5f)
+                reflectiveCurveToRelative(-2.24f, -5f, -5f, -5f)
+                close()
+            }
+        }
+
+    val Bell: ImageVector
+        get() = icon("Bell") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(12f, 22f)
+                curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+                horizontalLineToRelative(-4f)
+                curveToRelative(0f, 1.1f, 0.89f, 2f, 2f, 2f)
+                close()
+                moveTo(18f, 16f)
+                verticalLineToRelative(-5f)
+                curveToRelative(0f, -3.07f, -1.64f, -5.64f, -4.5f, -6.32f)
+                verticalLineTo(4f)
+                curveToRelative(0f, -0.83f, -0.67f, -1.5f, -1.5f, -1.5f)
+                reflectiveCurveToRelative(-1.5f, 0.67f, -1.5f, 1.5f)
+                verticalLineToRelative(0.68f)
+                curveTo(7.63f, 5.36f, 6f, 7.92f, 6f, 11f)
+                verticalLineToRelative(5f)
+                lineToRelative(-2f, 2f)
+                verticalLineToRelative(1f)
+                horizontalLineToRelative(16f)
+                verticalLineToRelative(-1f)
+                lineToRelative(-2f, -2f)
+                close()
+            }
+        }
+
+    val Image: ImageVector
+        get() = icon("Image") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(21f, 19f)
+                verticalLineTo(5f)
+                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                horizontalLineTo(5f)
+                curveToRelative(-1.1f, 0f, -2f, 0.9f, -2f, 2f)
+                verticalLineToRelative(14f)
+                curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+                horizontalLineToRelative(14f)
+                curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+                close()
+                moveTo(8.5f, 13.5f)
+                lineToRelative(2.5f, 3.01f)
+                lineTo(14.5f, 12f)
+                lineToRelative(4.5f, 6f)
+                horizontalLineTo(5f)
+                lineToRelative(3.5f, -4.5f)
+                close()
+            }
+        }
+
+    val Movie: ImageVector
+        get() = icon("Movie") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(18f, 4f)
+                lineToRelative(2f, 4f)
+                horizontalLineToRelative(-3f)
+                lineToRelative(-2f, -4f)
+                horizontalLineToRelative(-2f)
+                lineToRelative(2f, 4f)
+                horizontalLineToRelative(-3f)
+                lineToRelative(-2f, -4f)
+                horizontalLineTo(8f)
+                lineToRelative(2f, 4f)
+                horizontalLineTo(7f)
+                lineTo(5f, 4f)
+                horizontalLineTo(4f)
+                curveToRelative(-1.1f, 0f, -1.99f, 0.9f, -1.99f, 2f)
+                lineTo(2f, 18f)
+                curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+                horizontalLineToRelative(16f)
+                curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+                verticalLineTo(4f)
+                horizontalLineToRelative(-4f)
+                close()
+            }
+        }
 }

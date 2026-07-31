@@ -1,6 +1,7 @@
 package com.nitanmal.app.data.remote.model
 
 import com.nitanmal.app.domain.model.Nota
+import com.nitanmal.app.domain.model.Notificacion
 import com.nitanmal.app.domain.model.Pregunta
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -11,6 +12,19 @@ data class NotasResponse(val notas: List<Nota> = emptyList(), val error: String?
 
 @Serializable
 data class NotaResponse(val nota: Nota? = null, val error: String? = null)
+
+@Serializable
+data class ConvertirResponse(
+    val nota: Nota? = null,
+    val episodioId: String? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class NotificacionesResponse(
+    val notificaciones: List<Notificacion> = emptyList(),
+    val error: String? = null
+)
 
 @Serializable
 data class PreguntasResponse(val preguntas: List<Pregunta> = emptyList(), val error: String? = null)

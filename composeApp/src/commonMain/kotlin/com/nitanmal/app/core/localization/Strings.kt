@@ -45,6 +45,14 @@ data class AppStrings(
     val ideasComentar: String,
     val ideasBorrar: String,
     val ideasFijar: String,
+    val ideasEnlaces: String,
+    val ideasAudios: String,
+    val ideasConvertir: String,
+    val ideasConvertirConfirm: String,
+
+    // Notificaciones
+    val notifTitle: String,
+    val notifVacio: String,
 
     // Buzón
     val buzonTitle: String,
@@ -97,6 +105,13 @@ private val SpanishStrings = AppStrings(
     ideasComentar = "Escribe un comentario…",
     ideasBorrar = "Borrar idea",
     ideasFijar = "Fijar",
+    ideasEnlaces = "Enlaces",
+    ideasAudios = "Audios",
+    ideasConvertir = "Convertir a episodio",
+    ideasConvertirConfirm = "Se creará un episodio en producción con esta idea y la idea quedará como Convertida.",
+
+    notifTitle = "Notificaciones",
+    notifVacio = "No tienes notificaciones.",
 
     buzonTitle = "Buzón",
     buzonTodas = "Todas",
@@ -146,6 +161,13 @@ private val EnglishStrings = AppStrings(
     ideasComentar = "Write a comment…",
     ideasBorrar = "Delete idea",
     ideasFijar = "Pin",
+    ideasEnlaces = "Links",
+    ideasAudios = "Audios",
+    ideasConvertir = "Convert to episode",
+    ideasConvertirConfirm = "A production episode will be created from this idea and the idea will be marked as Converted.",
+
+    notifTitle = "Notifications",
+    notifVacio = "You have no notifications.",
 
     buzonTitle = "Inbox",
     buzonTodas = "All",

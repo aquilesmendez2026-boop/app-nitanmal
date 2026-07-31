@@ -12,6 +12,7 @@ data class IdeasUiState(
     val isLoading: Boolean = false,
     val notas: List<Nota> = emptyList(),
     val error: String? = null,
+    val info: String? = null,
     val isCreating: Boolean = false,
     val showCreateSheet: Boolean = false
 ) {
@@ -77,6 +78,25 @@ class IdeasViewModel(
 
     fun togglePin(id: String) = mutate { repository.togglePinNota(id) }
 
+    fun convertir(id: String) {
+        viewModelScope.launch {
+            repository.convertirNota(id)
+                .onSuccess { actualizada ->
+                    _uiState.value = _uiState.value.copy(
+                        notas = _uiState.value.notas.map {
+                            if (it.id == actualizada.id) actualizada else it
+                        },
+                        info = "Idea convertida en episodio 🎬"
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message ?: "No se pudo convertir la idea"
+                    )
+                }
+        }
+    }
+
     fun delete(id: String) {
         viewModelScope.launch {
             repository.deleteNota(id)
@@ -95,6 +115,10 @@ class IdeasViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun clearInfo() {
+        _uiState.value = _uiState.value.copy(info = null)
     }
 
     /** Ejecuta una mutación que devuelve la nota actualizada y la reemplaza en la lista. */

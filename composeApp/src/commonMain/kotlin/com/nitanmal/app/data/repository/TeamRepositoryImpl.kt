@@ -5,6 +5,7 @@ import com.nitanmal.app.data.remote.TeamApiService
 import com.nitanmal.app.data.remote.model.NotaInput
 import com.nitanmal.app.domain.auth.PlatformAuth
 import com.nitanmal.app.domain.model.Nota
+import com.nitanmal.app.domain.model.Notificacion
 import com.nitanmal.app.domain.model.Pregunta
 import com.nitanmal.app.domain.repository.TeamRepository
 
@@ -66,6 +67,9 @@ class TeamRepositoryImpl(
     override suspend fun togglePinNota(id: String): Result<Nota> =
         call { requireNota(apiService.togglePinNota(it, id).nota) }
 
+    override suspend fun convertirNota(id: String): Result<Nota> =
+        call { requireNota(apiService.convertirNota(it, id).nota) }
+
     // ── Buzón ──
     override suspend fun listPreguntas(): Result<List<Pregunta>> =
         call { apiService.listPreguntas(it).preguntas }
@@ -75,4 +79,11 @@ class TeamRepositoryImpl(
 
     override suspend fun deletePregunta(id: String): Result<Unit> =
         call { apiService.deletePregunta(it, id) }
+
+    // ── Notificaciones ──
+    override suspend fun listNotificaciones(): Result<List<Notificacion>> =
+        call { apiService.listNotificaciones(it).notificaciones }
+
+    override suspend fun marcarNotificacionesLeidas(): Result<Unit> =
+        call { apiService.marcarNotificacionesLeidas(it) }
 }
