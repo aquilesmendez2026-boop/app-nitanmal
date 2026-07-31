@@ -6,7 +6,10 @@ data class User(
     val email: String = "",
     val photoUrl: String? = null,
     val isAuthenticated: Boolean = false,
+    /** Rol en nitanmal: "miembro" | "admin" | "superadmin" */
     val role: String? = null,
+    /** Plan de membresía: "free" | "premium" */
+    val plan: String? = null,
     val roles: List<UserRole> = emptyList(),
     val selectedClientKey: String? = null
 )

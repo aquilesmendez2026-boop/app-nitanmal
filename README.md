@@ -1,40 +1,50 @@
 # Nitanmal
 
-App móvil **Kotlin Multiplatform (Android + iOS)** con **Compose Multiplatform** para el proyecto web Nitan Mal. Réplica de la arquitectura de `uminer` (Umine Smart ChangeLog): Clean Architecture + atomic design.
+App móvil **Kotlin Multiplatform (Android + iOS)** con **Compose Multiplatform** del proyecto **Nitan Mal**. Réplica de la arquitectura de `uminer`: Clean Architecture + atomic design, pero contra la infraestructura propia de nitanmal.
 
 ## Estado actual
 
-- ✅ Splash → **Login con Google** (Firebase Auth) → `/verify` → selección de portal → Dashboard
+- ✅ **Login funcionando end-to-end en Android**: Splash → Google Sign-In → Firebase (`nitanmal-a75de`) → `GET /me` del backend propio → Dashboard
 - ✅ Dashboard con **navbar inferior** (Inicio / Cursos / Notas / Ajustes) igual a uminer
-- ✅ Ajustes: tema oscuro, cambiar de portal, cerrar sesión
+- ✅ Ajustes: tema oscuro, cerrar sesión
 - ⏳ Inicio / Cursos / Notas son placeholders
+- ⏳ iOS: código listo, falta el `GoogleService-Info.plist` real y configurar Xcode (SPM: Firebase + GoogleSignIn, TEAM_ID)
+
+## Infraestructura
+
+| Componente | Valor |
+|---|---|
+| Firebase | `nitanmal-a75de` (nº 1008342407186) |
+| Backend | `https://uhryf0x2jb.execute-api.us-east-2.amazonaws.com` (stack `nitalmal-backend`) |
+| AWS | cuenta `970335222766`, región `us-east-2`, perfil CLI `nitalmal` |
+| Repo web | `~/Documents/nitalmal` (React + Vite, mismo backend) |
+| Paquete/bundle | `com.nitanmal.app` |
 
 ## Flujo de autenticación
 
-1. Google Sign-In (nativo Android / iOS) → Firebase Auth → `firebaseIdToken`
-2. `POST https://safe-api-auth-customers.umine.com/prod/verify` con header `Bearer <token>` y body `{core_key, client_key, env}`
-3. La respuesta trae `user_id`, `email`, `role`, `roles[]`. Con más de un rol se muestra el selector de portal.
+1. Google Sign-In (nativo) → Firebase Auth → `firebaseIdToken`
+2. `GET {API_URL}/me` con `Authorization: Bearer <token>`
+   - El **JWT authorizer** de API Gateway valida el token contra `https://securetoken.google.com/nitanmal-a75de`
+   - El handler hace upsert del usuario en DynamoDB (`nitalmal-usuarios`), registra `lastLogin` y devuelve `{user: {userId, email, name, role, plan, apodo, photoURL, ...}}`
+   - Roles: `miembro` (default) | `admin` | `superadmin` (bootstrap por `SUPERADMIN_EMAIL`)
+3. La app mapea el perfil a `User` y navega al Dashboard
 
-## ⚠️ Datos pendientes (reemplazar antes de que funcione el login real)
+## Configuración local (no versionada)
 
-| Qué | Dónde | Valor actual |
-|---|---|---|
-| `google-services.json` (app Android `com.nitanmal.app` en Firebase) | `composeApp/google-services.json` | placeholder |
-| `GoogleService-Info.plist` (app iOS `com.nitanmal.app`) | `iosApp/iosApp/GoogleService-Info.plist` | placeholder |
-| Web Client ID (OAuth tipo "Web" del proyecto Firebase) | `local.properties` → `WEB_CLIENT_ID` | placeholder |
-| Admin API Key del core auth | `local.properties` → `ADMIN_API_KEY` | placeholder |
-| iOS CLIENT_ID | `composeApp/src/iosMain/.../core/config/SecureConfig.ios.kt` | placeholder |
-| URL scheme (REVERSED_CLIENT_ID) | `iosApp/iosApp/Info.plist` | placeholder |
-| `core_key` / `client_key` / `env` asignados a nitanmal | `commonMain/.../data/remote/AuthConfig.kt` | `smart-customers` / `NITANMAL` / `prod` (provisionales) |
+`local.properties`:
+```properties
+sdk.dir=...
+WEB_CLIENT_ID=1008342407186-tbfjsd2p6rj4gkr09o7v6nfh741rnphv.apps.googleusercontent.com
+```
 
-Además, en Firebase Console:
-1. Crear el proyecto y habilitar **Google** en Authentication → Sign-in method.
-2. Registrar la app Android `com.nitanmal.app` **con el SHA-1 de debug**:
-   ```
-   keytool -list -v -alias androiddebugkey -keystore ~/.android/debug.keystore -storepass android -keypass android
-   ```
-3. Registrar la app iOS `com.nitanmal.app`.
-4. Confirmar con el equipo de `umine-core-auth-customers` que el backend `/verify` acepta tokens del proyecto Firebase de nitanmal (distinto `aud`/`iss` que `umine-prod-clientes`) y que existe el `client_key` de nitanmal con usuarios de prueba.
+El SHA-1 de debug debe estar registrado en Firebase Console (app Android `com.nitanmal.app`).
+
+## Pendientes iOS
+
+1. Descargar `GoogleService-Info.plist` de la app iOS `com.nitanmal.app` en Firebase Console → reemplazar `iosApp/iosApp/GoogleService-Info.plist`
+2. Poner el `REVERSED_CLIENT_ID` real como URL scheme en `iosApp/iosApp/Info.plist`
+3. Poner el `CLIENT_ID` de iOS en `composeApp/src/iosMain/.../SecureConfig.ios.kt`
+4. En Xcode: agregar Firebase iOS SDK + GoogleSignIn vía SPM y setear `TEAM_ID` en `iosApp/Configuration/Config.xcconfig`
 
 ## Build
 
@@ -45,7 +55,6 @@ Además, en Firebase Console:
 # iOS (Kotlin framework)
 ./gradlew :composeApp:compileKotlinIosSimulatorArm64
 # App completa: abrir iosApp/iosApp.xcodeproj en Xcode
-# (requiere agregar Firebase iOS SDK + GoogleSignIn via SPM y setear TEAM_ID en Configuration/Config.xcconfig)
 ```
 
 ## Estructura
@@ -54,7 +63,7 @@ Además, en Firebase Console:
 composeApp/src/commonMain/kotlin/com/nitanmal/app/
 ├── core/            # Logger, SecureConfig, localización (ES/EN)
 ├── theme/           # NitanmalTheme (paleta cyan/purple/green), tipografía
-├── data/            # AuthApiService (/verify), AuthRepositoryImpl, modelos
+├── data/            # AuthApiService (GET /me), AuthRepositoryImpl, MeResponse
 ├── domain/          # PlatformAuth (expect), User, use cases, interfaces
 └── presentation/
     ├── viewmodel/   # AuthViewModel
@@ -62,7 +71,7 @@ composeApp/src/commonMain/kotlin/com/nitanmal/app/
     └── ui/
         ├── components/       # NitanmalNavigationBar, atoms, molecules, organisms
         ├── icons/            # AppIcons (ImageVector multiplataforma)
-        └── screens/          # Splash, Login, ClientSelection, MainDashboard, Home, Settings
+        └── screens/          # Splash, Login, MainDashboard, Home, Settings
 ```
 
 Plataformas:

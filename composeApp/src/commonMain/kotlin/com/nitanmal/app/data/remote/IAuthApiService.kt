@@ -1,12 +1,8 @@
 package com.nitanmal.app.data.remote
 
-import com.nitanmal.app.data.remote.model.VerifyResponse
+import com.nitanmal.app.data.remote.model.MeResponse
 
 interface IAuthApiService {
-    suspend fun verify(
-        firebaseIdToken: String,
-        coreKey: String,
-        clientKey: String? = null,
-        env: String? = null
-    ): VerifyResponse
+    /** GET /me con el Firebase ID token: registra el login y devuelve el perfil. */
+    suspend fun getMe(firebaseIdToken: String): MeResponse
 }

@@ -1,12 +1,10 @@
 package com.nitanmal.app.data.repository
 
 import com.nitanmal.app.data.remote.AuthApiService
-import com.nitanmal.app.data.remote.AuthConfig
 import com.nitanmal.app.data.remote.IAuthApiService
 import com.nitanmal.app.domain.auth.GoogleSignInResult
 import com.nitanmal.app.domain.auth.PlatformAuth
 import com.nitanmal.app.domain.model.User
-import com.nitanmal.app.domain.model.UserRole
 import com.nitanmal.app.domain.repository.AuthRepository
 
 class AuthRepositoryImpl(
@@ -35,34 +33,25 @@ class AuthRepositoryImpl(
                 }
             }
 
-            // 2. Call /verify API with Firebase ID token
-            val verifyResponse = apiService.verify(
-                firebaseIdToken = signInResult.firebaseIdToken,
-                coreKey = AuthConfig.AUTH_CORE_ID,
-                clientKey = AuthConfig.CLIENT_KEY,
-                env = AuthConfig.ENVIRONMENT
-            )
+            // 2. GET /me del backend de nitanmal: el JWT authorizer valida el token
+            //    y el handler registra el login y devuelve el perfil (con rol).
+            val meResponse = apiService.getMe(signInResult.firebaseIdToken)
 
-            if (!verifyResponse.ok) {
-                return Result.failure(
-                    Exception(verifyResponse.message ?: "Verificación fallida")
+            val profile = meResponse.user
+                ?: return Result.failure(
+                    Exception(meResponse.error ?: "El backend no devolvió el perfil")
                 )
-            }
 
             val user = User(
-                id = verifyResponse.user_id ?: signInResult.userId,
-                name = signInResult.displayName ?: "",
-                email = verifyResponse.email ?: signInResult.email,
-                photoUrl = signInResult.photoUrl,
+                id = profile.userId ?: signInResult.userId,
+                name = profile.name?.takeIf { it.isNotBlank() }
+                    ?: signInResult.displayName ?: "",
+                email = profile.email ?: signInResult.email,
+                // Preferimos la foto subida al backend; si no hay, la de Google.
+                photoUrl = profile.photoURL ?: signInResult.photoUrl,
                 isAuthenticated = true,
-                role = verifyResponse.role,
-                roles = verifyResponse.roles?.map {
-                    UserRole(
-                        clientKey = it.client_key,
-                        role = it.role,
-                        coreKey = it.core_key
-                    )
-                } ?: emptyList()
+                role = profile.role,
+                plan = profile.plan
             )
             currentUser = user
             Result.success(user)
@@ -72,18 +61,9 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun selectClient(clientKey: String): Result<User> {
-        return try {
-            val user = currentUser ?: return Result.failure(Exception("No hay usuario autenticado"))
-            val role = user.roles.find { it.clientKey == clientKey }
-            val updatedUser = user.copy(
-                selectedClientKey = clientKey,
-                role = role?.role ?: user.role
-            )
-            currentUser = updatedUser
-            Result.success(updatedUser)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        // nitanmal es mono-portal: no hay selección de cliente.
+        val user = currentUser ?: return Result.failure(Exception("No hay usuario autenticado"))
+        return Result.success(user)
     }
 
     override suspend fun signOut(): Result<Unit> {

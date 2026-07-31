@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "nitanmal-placeholder",
-    "storage_bucket": "nitanmal-placeholder.firebasestorage.app"
+    "project_number": "1008342407186",
+    "project_id": "nitanmal-a75de",
+    "storage_bucket": "nitanmal-a75de.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:1008342407186:android:bfa5058e5344377a5da0cb",
         "android_client_info": {
           "package_name": "com.nitanmal.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "000000000000-placeholder.apps.googleusercontent.com",
+          "client_id": "1008342407186-tbfjsd2p6rj4gkr09o7v6nfh741rnphv.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyA-PLACEHOLDER-REEMPLAZAR-000000000"
+          "current_key": "AIzaSyBGoODMcwyTgqchDf2bX9TpLBEddI3lkuo"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "000000000000-placeholder.apps.googleusercontent.com",
+              "client_id": "1008342407186-tbfjsd2p6rj4gkr09o7v6nfh741rnphv.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

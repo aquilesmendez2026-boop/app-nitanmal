@@ -3,14 +3,10 @@ package com.nitanmal.app.data.remote
 import com.nitanmal.app.core.config.SecureConfig
 
 object AuthConfig {
-    const val AUTH_API_URL = "https://safe-api-auth-customers.umine.com/prod"
+    // Backend propio de nitanmal (stack `nitalmal-backend`, cuenta AWS 970335222766).
+    // El API Gateway valida el Firebase ID token (proyecto nitanmal-a75de) con un
+    // JWT authorizer; GET /me crea/actualiza el usuario y devuelve su perfil.
+    const val API_URL = "https://uhryf0x2jb.execute-api.us-east-2.amazonaws.com"
 
-    // TODO(nitanmal): confirmar el core_key y client_key asignados a nitanmal
-    // en umine-core-auth-customers. Valores actuales son provisionales.
-    const val AUTH_CORE_ID = "smart-customers"
-    const val CLIENT_KEY = "NITANMAL"
-    const val ENVIRONMENT = "prod"
-
-    val ADMIN_API_KEY: String get() = SecureConfig.adminApiKey
     val WEB_CLIENT_ID: String get() = SecureConfig.webClientId
 }
