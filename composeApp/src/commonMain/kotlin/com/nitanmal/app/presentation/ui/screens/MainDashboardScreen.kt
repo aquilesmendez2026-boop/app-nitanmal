@@ -85,17 +85,28 @@ fun MainDashboardScreen(
                         ideasViewModel = ideasViewModel,
                         buzonViewModel = buzonViewModel,
                         notificacionesViewModel = notificacionesViewModel,
+                        produccionViewModel = produccionViewModel,
+                        reunionesViewModel = reunionesViewModel,
                         onGoToIdeas = {
                             navController.navigate(IdeasRoute) { launchSingleTop = true }
                         },
                         onGoToBuzon = {
                             navController.navigate(BuzonRoute) { launchSingleTop = true }
                         },
+                        onGoToProduccion = {
+                            navController.navigate(ProduccionRoute) { launchSingleTop = true }
+                        },
+                        onGoToReuniones = {
+                            navController.navigate(ReunionesRoute) { launchSingleTop = true }
+                        },
                         onGoToSettings = {
                             navController.navigate(SettingsRoute) { launchSingleTop = true }
                         },
                         onOpenIdea = { notaId ->
                             navController.navigate(IdeaDetailRoute(notaId))
+                        },
+                        onOpenEpisodio = { episodioId ->
+                            navController.navigate(EpisodioDetailRoute(episodioId))
                         }
                     )
                 }

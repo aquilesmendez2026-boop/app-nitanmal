@@ -29,11 +29,17 @@ data class AppStrings(
     // Home
     val homeIdeasActivas: String,
     val homePreguntasPendientes: String,
+    val homeEpisodiosEnCurso: String,
+    val homeReunionesProximas: String,
     val homeUltimasIdeas: String,
     val homeUltimasPreguntas: String,
+    val homeEnProduccion: String,
+    val homeProximaReunion: String,
     val homeVerTodas: String,
     val homeSinIdeas: String,
     val homeSinPreguntas: String,
+    val homeSinEpisodios: String,
+    val homeSinReuniones: String,
 
     // Ideas
     val ideasTitle: String,
@@ -121,11 +127,17 @@ private val SpanishStrings = AppStrings(
 
     homeIdeasActivas = "Ideas activas",
     homePreguntasPendientes = "Preguntas pendientes",
+    homeEpisodiosEnCurso = "Episodios en curso",
+    homeReunionesProximas = "Próximas reuniones",
     homeUltimasIdeas = "Últimas ideas",
     homeUltimasPreguntas = "Último del buzón",
+    homeEnProduccion = "En producción",
+    homeProximaReunion = "Próxima reunión",
     homeVerTodas = "Ver todas →",
     homeSinIdeas = "Aún no hay ideas. ¡Crea la primera!",
     homeSinPreguntas = "No hay preguntas del público todavía.",
+    homeSinEpisodios = "No hay episodios en producción.",
+    homeSinReuniones = "No hay reuniones agendadas.",
 
     ideasTitle = "Ideas",
     ideasNueva = "Nueva idea",
@@ -206,11 +218,17 @@ private val EnglishStrings = AppStrings(
 
     homeIdeasActivas = "Active ideas",
     homePreguntasPendientes = "Pending questions",
+    homeEpisodiosEnCurso = "Episodes in progress",
+    homeReunionesProximas = "Upcoming meetings",
     homeUltimasIdeas = "Latest ideas",
     homeUltimasPreguntas = "Latest from inbox",
+    homeEnProduccion = "In production",
+    homeProximaReunion = "Next meeting",
     homeVerTodas = "See all →",
     homeSinIdeas = "No ideas yet. Create the first one!",
     homeSinPreguntas = "No audience questions yet.",
+    homeSinEpisodios = "No episodes in production.",
+    homeSinReuniones = "No meetings scheduled.",
 
     ideasTitle = "Ideas",
     ideasNueva = "New idea",

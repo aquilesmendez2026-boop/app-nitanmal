@@ -1,5 +1,6 @@
 package com.nitanmal.app.presentation.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,11 +21,14 @@ import com.nitanmal.app.domain.model.NotaEstado
 import com.nitanmal.app.domain.model.User
 import com.nitanmal.app.presentation.ui.components.molecules.EstadoChip
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
+import com.nitanmal.app.domain.model.Plantillas
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
 import com.nitanmal.app.presentation.viewmodel.NotificacionesViewModel
+import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
+import com.nitanmal.app.presentation.viewmodel.ReunionesViewModel
 
-/** Inicio: resumen del trabajo del equipo — ideas, buzón y notificaciones. */
+/** Inicio: resumen del trabajo del equipo — ideas, buzón, producción y reuniones. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -32,27 +36,37 @@ fun HomeScreen(
     ideasViewModel: IdeasViewModel,
     buzonViewModel: BuzonViewModel,
     notificacionesViewModel: NotificacionesViewModel,
+    produccionViewModel: ProduccionViewModel,
+    reunionesViewModel: ReunionesViewModel,
     onGoToIdeas: () -> Unit,
     onGoToBuzon: () -> Unit,
+    onGoToProduccion: () -> Unit,
+    onGoToReuniones: () -> Unit,
     onGoToSettings: () -> Unit,
     onOpenIdea: (String) -> Unit,
+    onOpenEpisodio: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
     val ideasState by ideasViewModel.uiState.collectAsState()
     val buzonState by buzonViewModel.uiState.collectAsState()
     val notifState by notificacionesViewModel.uiState.collectAsState()
+    val prodState by produccionViewModel.uiState.collectAsState()
+    val reuState by reunionesViewModel.uiState.collectAsState()
     var showNotifSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (ideasState.notas.isEmpty()) ideasViewModel.load()
         if (buzonState.preguntas.isEmpty()) buzonViewModel.load()
         if (notifState.notificaciones.isEmpty()) notificacionesViewModel.load()
+        if (prodState.episodios.isEmpty()) produccionViewModel.load()
+        if (reuState.reuniones.isEmpty()) reunionesViewModel.load()
     }
 
     val ideasActivas = ideasState.notas.count {
         NotaEstado.fromKey(it.estado) in listOf(NotaEstado.NUEVA, NotaEstado.REVISION, NotaEstado.APROBADA)
     }
+    val episodiosEnCurso = prodState.episodios.count { it.aprobadas < Plantillas.STAGES.size }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -117,7 +131,7 @@ fun HomeScreen(
             }
         }
 
-        // Contadores
+        // Contadores (2×2)
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatCard(
@@ -134,6 +148,130 @@ fun HomeScreen(
                     onClick = onGoToBuzon,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                StatCard(
+                    valor = "$episodiosEnCurso",
+                    etiqueta = strings.homeEpisodiosEnCurso,
+                    icono = { Icon(AppIcons2.Movie, null, tint = androidx.compose.ui.graphics.Color(0xFF8b5cf6)) },
+                    onClick = onGoToProduccion,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    valor = "${reuState.proximas.size}",
+                    etiqueta = strings.homeReunionesProximas,
+                    icono = { Icon(AppIcons2.Event, null, tint = MaterialTheme.colorScheme.tertiary) },
+                    onClick = onGoToReuniones,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        // En producción
+        item {
+            SectionHeader(strings.homeEnProduccion, strings.homeVerTodas, onGoToProduccion)
+        }
+        item {
+            val enCurso = prodState.ordenados.filter { it.aprobadas < Plantillas.STAGES.size }.take(2)
+            if (enCurso.isEmpty()) {
+                EmptyHint(strings.homeSinEpisodios)
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    enCurso.forEach { episodio ->
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { onOpenEpisodio(episodio.id) }
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = episodio.titulo,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = "${episodio.aprobadas}/${Plantillas.STAGES.size}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Plantillas.STAGES.forEach { stage ->
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(5.dp)
+                                                .clip(RoundedCornerShape(3.dp))
+                                                .background(estadoEtapaColor(episodio.etapa(stage).estado))
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Próxima reunión
+        item {
+            SectionHeader(strings.homeProximaReunion, strings.homeVerTodas, onGoToReuniones)
+        }
+        item {
+            val proxima = reuState.proximas.firstOrNull()
+            if (proxima == null) {
+                EmptyHint(strings.homeSinReuniones)
+            } else {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable(onClick = onGoToReuniones)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                    ) {
+                        Icon(
+                            AppIcons2.Event,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = proxima.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = listOfNotNull(
+                                    proxima.date,
+                                    proxima.time.takeIf { it.isNotBlank() },
+                                    proxima.lugar?.takeIf { it.isNotBlank() }
+                                ).joinToString(" · "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                            )
+                        }
+                    }
+                }
             }
         }
 
