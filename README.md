@@ -2,6 +2,8 @@
 
 App móvil **Kotlin Multiplatform (Android + iOS)** con **Compose Multiplatform** del proyecto **Nitan Mal**. Réplica de la arquitectura de `uminer`: Clean Architecture + atomic design, pero contra la infraestructura propia de nitanmal.
 
+> 📘 **Guía completa** (arquitectura, endpoints y cómo replicar esta base en otros proyectos): [docs/GUIA-REPLICACION.md](docs/GUIA-REPLICACION.md)
+
 ## Estado actual
 
 - ✅ **Login funcionando end-to-end en Android**: Splash → Google Sign-In → Firebase (`nitanmal-a75de`) → `GET /me` del backend propio → Dashboard
