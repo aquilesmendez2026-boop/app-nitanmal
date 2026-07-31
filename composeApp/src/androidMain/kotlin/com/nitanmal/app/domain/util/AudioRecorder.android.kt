@@ -1,5 +1,7 @@
 package com.nitanmal.app.domain.util
 
+import android.content.Context
+import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Build
 import android.util.Log
@@ -58,6 +60,16 @@ private class AndroidAudioRecorder : AudioRecorder {
             runCatching { r.release() }
             file?.delete()
             null
+        } finally {
+            resetAudioMode()
+        }
+    }
+
+    /** Devuelve el modo de audio a NORMAL por si la captura lo dejó alterado. */
+    private fun resetAudioMode() {
+        runCatching {
+            val am = AppContextHolder.context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (am.mode != AudioManager.MODE_NORMAL) am.mode = AudioManager.MODE_NORMAL
         }
     }
 
@@ -65,6 +77,7 @@ private class AndroidAudioRecorder : AudioRecorder {
         recorder?.let { r ->
             runCatching { r.stop() }
             runCatching { r.release() }
+            resetAudioMode()
         }
         recorder = null
         outputFile?.delete()
