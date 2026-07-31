@@ -24,26 +24,35 @@ fun NitanmalNavigationBar(
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
-    val items = listOf(strings.navHome, strings.navIdeas, strings.navBuzon, strings.navSettings)
-    val routes = listOf(HomeRoute, IdeasRoute, BuzonRoute, SettingsRoute)
+    val items = listOf(
+        strings.navHome,
+        strings.navIdeas,
+        strings.navProduccion,
+        strings.navReuniones,
+        strings.navBuzon
+    )
+    val routes = listOf(HomeRoute, IdeasRoute, ProduccionRoute, ReunionesRoute, BuzonRoute)
     val icons = listOf(
         AppIcons.Home,
         AppIcons2.Lightbulb,
-        AppIcons2.Mail,
-        AppIcons.Settings
+        AppIcons2.Movie,
+        AppIcons2.Event,
+        AppIcons2.Mail
     )
 
-    val homeRouteName     = HomeRoute::class.qualifiedName
-    val ideasRouteName    = IdeasRoute::class.qualifiedName
-    val buzonRouteName    = BuzonRoute::class.qualifiedName
-    val settingsRouteName = SettingsRoute::class.qualifiedName
+    val homeRouteName       = HomeRoute::class.qualifiedName
+    val ideasRouteName      = IdeasRoute::class.qualifiedName
+    val produccionRouteName = ProduccionRoute::class.qualifiedName
+    val reunionesRouteName  = ReunionesRoute::class.qualifiedName
+    val buzonRouteName      = BuzonRoute::class.qualifiedName
 
     val selectedIndex = when (currentRoute) {
-        homeRouteName     -> 0
-        ideasRouteName    -> 1
-        buzonRouteName    -> 2
-        settingsRouteName -> 3
-        else              -> 0
+        homeRouteName       -> 0
+        ideasRouteName      -> 1
+        produccionRouteName -> 2
+        reunionesRouteName  -> 3
+        buzonRouteName      -> 4
+        else                -> 0
     }
 
     val colorScheme = MaterialTheme.colorScheme

@@ -322,6 +322,42 @@ object AppIcons2 {
             }
         }
 
+    val Event: ImageVector
+        get() = icon("Event") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(17f, 12f)
+                horizontalLineToRelative(-5f)
+                verticalLineToRelative(5f)
+                horizontalLineToRelative(5f)
+                verticalLineToRelative(-5f)
+                close()
+                moveTo(16f, 1f)
+                verticalLineToRelative(2f)
+                horizontalLineTo(8f)
+                verticalLineTo(1f)
+                horizontalLineTo(6f)
+                verticalLineToRelative(2f)
+                horizontalLineTo(5f)
+                curveToRelative(-1.11f, 0f, -1.99f, 0.9f, -1.99f, 2f)
+                lineTo(3f, 19f)
+                curveToRelative(0f, 1.1f, 0.89f, 2f, 2f, 2f)
+                horizontalLineToRelative(14f)
+                curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+                verticalLineTo(5f)
+                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                horizontalLineToRelative(-1f)
+                verticalLineTo(1f)
+                horizontalLineToRelative(-2f)
+                close()
+                moveTo(19f, 19f)
+                horizontalLineTo(5f)
+                verticalLineTo(8f)
+                horizontalLineToRelative(14f)
+                verticalLineToRelative(11f)
+                close()
+            }
+        }
+
     val Movie: ImageVector
         get() = icon("Movie") {
             path(fill = SolidColor(Color.Black)) {

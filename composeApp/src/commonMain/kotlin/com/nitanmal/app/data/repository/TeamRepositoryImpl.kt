@@ -3,10 +3,17 @@ package com.nitanmal.app.data.repository
 import com.nitanmal.app.data.remote.ITeamApiService
 import com.nitanmal.app.data.remote.TeamApiService
 import com.nitanmal.app.data.remote.model.NotaInput
+import com.nitanmal.app.data.remote.model.ProduccionCreateInput
+import com.nitanmal.app.data.remote.model.ProduccionUpdateInput
+import com.nitanmal.app.data.remote.model.ReunionInput
+import com.nitanmal.app.data.remote.model.StageDataInput
 import com.nitanmal.app.domain.auth.PlatformAuth
+import com.nitanmal.app.domain.model.Episodio
+import com.nitanmal.app.domain.model.MiembroEquipo
 import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.Notificacion
 import com.nitanmal.app.domain.model.Pregunta
+import com.nitanmal.app.domain.model.Reunion
 import com.nitanmal.app.domain.repository.TeamRepository
 
 class TeamRepositoryImpl(
@@ -86,4 +93,60 @@ class TeamRepositoryImpl(
 
     override suspend fun marcarNotificacionesLeidas(): Result<Unit> =
         call { apiService.marcarNotificacionesLeidas(it) }
+
+    // ── Producción ──
+    private fun requireEpisodio(item: Episodio?): Episodio =
+        item ?: throw IllegalStateException("El backend no devolvió el episodio")
+
+    override suspend fun listProduccion(): Result<List<Episodio>> =
+        call { apiService.listProduccion(it).produccion }
+
+    override suspend fun createEpisodio(titulo: String, idea: String?): Result<Episodio> =
+        call {
+            requireEpisodio(
+                apiService.createEpisodio(
+                    it,
+                    ProduccionCreateInput(titulo = titulo, idea = idea?.takeIf { i -> i.isNotBlank() })
+                ).item
+            )
+        }
+
+    override suspend fun updateEpisodioStage(id: String, stage: String, data: StageDataInput): Result<Episodio> =
+        call {
+            requireEpisodio(
+                apiService.updateEpisodio(it, id, ProduccionUpdateInput(stage = stage, stageData = data)).item
+            )
+        }
+
+    override suspend fun deleteEpisodio(id: String): Result<Unit> =
+        call { apiService.deleteEpisodio(it, id) }
+
+    override suspend fun listEquipo(): Result<List<MiembroEquipo>> =
+        call { apiService.listEquipo(it).equipo }
+
+    // ── Reuniones ──
+    override suspend fun listReuniones(): Result<List<Reunion>> =
+        call { apiService.listReuniones(it).reuniones }
+
+    override suspend fun createReunion(
+        date: String,
+        time: String,
+        title: String,
+        description: String?,
+        lugar: String?
+    ): Result<Reunion> = call {
+        apiService.createReunion(
+            it,
+            ReunionInput(
+                date = date,
+                time = time,
+                title = title,
+                description = description?.takeIf { d -> d.isNotBlank() },
+                lugar = lugar?.takeIf { l -> l.isNotBlank() }
+            )
+        ).reunion ?: throw IllegalStateException("El backend no devolvió la reunión")
+    }
+
+    override suspend fun deleteReunion(id: String): Result<Unit> =
+        call { apiService.deleteReunion(it, id) }
 }

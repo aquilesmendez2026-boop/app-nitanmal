@@ -1,8 +1,12 @@
 package com.nitanmal.app.domain.repository
 
+import com.nitanmal.app.data.remote.model.StageDataInput
+import com.nitanmal.app.domain.model.Episodio
+import com.nitanmal.app.domain.model.MiembroEquipo
 import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.Notificacion
 import com.nitanmal.app.domain.model.Pregunta
+import com.nitanmal.app.domain.model.Reunion
 
 interface TeamRepository {
     // Ideas
@@ -26,4 +30,16 @@ interface TeamRepository {
     // Notificaciones
     suspend fun listNotificaciones(): Result<List<Notificacion>>
     suspend fun marcarNotificacionesLeidas(): Result<Unit>
+
+    // Producción
+    suspend fun listProduccion(): Result<List<Episodio>>
+    suspend fun createEpisodio(titulo: String, idea: String?): Result<Episodio>
+    suspend fun updateEpisodioStage(id: String, stage: String, data: StageDataInput): Result<Episodio>
+    suspend fun deleteEpisodio(id: String): Result<Unit>
+    suspend fun listEquipo(): Result<List<MiembroEquipo>>
+
+    // Reuniones
+    suspend fun listReuniones(): Result<List<Reunion>>
+    suspend fun createReunion(date: String, time: String, title: String, description: String?, lugar: String?): Result<Reunion>
+    suspend fun deleteReunion(id: String): Result<Unit>
 }

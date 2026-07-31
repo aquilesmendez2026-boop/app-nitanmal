@@ -34,6 +34,7 @@ fun HomeScreen(
     notificacionesViewModel: NotificacionesViewModel,
     onGoToIdeas: () -> Unit,
     onGoToBuzon: () -> Unit,
+    onGoToSettings: () -> Unit,
     onOpenIdea: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -105,6 +106,13 @@ fun HomeScreen(
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
+                }
+                IconButton(onClick = onGoToSettings) {
+                    Icon(
+                        com.nitanmal.app.presentation.ui.icons.AppIcons.Settings,
+                        contentDescription = strings.navSettings,
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
                 }
             }
         }

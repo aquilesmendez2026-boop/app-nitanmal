@@ -14,18 +14,24 @@ import com.nitanmal.app.data.repository.TeamRepositoryImpl
 import com.nitanmal.app.domain.auth.LocalPlatformAuth
 import com.nitanmal.app.domain.model.User
 import com.nitanmal.app.presentation.navigation.BuzonRoute
+import com.nitanmal.app.presentation.navigation.EpisodioDetailRoute
 import com.nitanmal.app.presentation.navigation.HomeRoute
 import com.nitanmal.app.presentation.navigation.IdeaDetailRoute
 import com.nitanmal.app.presentation.navigation.IdeasRoute
+import com.nitanmal.app.presentation.navigation.ProduccionRoute
+import com.nitanmal.app.presentation.navigation.ReunionesRoute
 import com.nitanmal.app.presentation.navigation.SettingsRoute
 import com.nitanmal.app.presentation.ui.components.NitanmalNavigationBar
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
 import com.nitanmal.app.presentation.viewmodel.NotificacionesViewModel
+import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
+import com.nitanmal.app.presentation.viewmodel.ReunionesViewModel
 
 /**
- * Dashboard principal con navbar inferior (misma estructura que uminer):
- * Inicio (resumen) / Ideas / Buzón / Ajustes.
+ * Dashboard principal con navbar inferior:
+ * Inicio / Ideas / Producción / Reuniones / Buzón.
+ * Ajustes se abre desde el engranaje del Inicio.
  */
 @Composable
 fun MainDashboardScreen(
@@ -42,6 +48,8 @@ fun MainDashboardScreen(
     val ideasViewModel = remember { IdeasViewModel(teamRepository) }
     val buzonViewModel = remember { BuzonViewModel(teamRepository) }
     val notificacionesViewModel = remember { NotificacionesViewModel(teamRepository) }
+    val produccionViewModel = remember { ProduccionViewModel(teamRepository) }
+    val reunionesViewModel = remember { ReunionesViewModel(teamRepository) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -83,6 +91,9 @@ fun MainDashboardScreen(
                         onGoToBuzon = {
                             navController.navigate(BuzonRoute) { launchSingleTop = true }
                         },
+                        onGoToSettings = {
+                            navController.navigate(SettingsRoute) { launchSingleTop = true }
+                        },
                         onOpenIdea = { notaId ->
                             navController.navigate(IdeaDetailRoute(notaId))
                         }
@@ -108,6 +119,34 @@ fun MainDashboardScreen(
                         currentUserId = user.id,
                         isAdmin = isAdmin,
                         onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable<ProduccionRoute> {
+                    ProduccionScreen(
+                        viewModel = produccionViewModel,
+                        currentUserId = user.id,
+                        isAdmin = isAdmin,
+                        onOpenEpisodio = { episodioId ->
+                            navController.navigate(EpisodioDetailRoute(episodioId))
+                        }
+                    )
+                }
+
+                composable<EpisodioDetailRoute> { backStackEntry ->
+                    val route = backStackEntry.toRoute<EpisodioDetailRoute>()
+                    EpisodioDetailScreen(
+                        episodioId = route.episodioId,
+                        viewModel = produccionViewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable<ReunionesRoute> {
+                    ReunionesScreen(
+                        viewModel = reunionesViewModel,
+                        currentUserId = user.id,
+                        isAdmin = isAdmin
                     )
                 }
 

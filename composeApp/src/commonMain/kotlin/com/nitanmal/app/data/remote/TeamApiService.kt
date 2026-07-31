@@ -4,13 +4,21 @@ import com.nitanmal.app.core.logger.Logger
 import com.nitanmal.app.data.remote.model.AnsweredInput
 import com.nitanmal.app.data.remote.model.ComentarioInput
 import com.nitanmal.app.data.remote.model.ConvertirResponse
+import com.nitanmal.app.data.remote.model.EpisodioResponse
+import com.nitanmal.app.data.remote.model.EquipoResponse
 import com.nitanmal.app.data.remote.model.EstadoInput
 import com.nitanmal.app.data.remote.model.NotaInput
 import com.nitanmal.app.data.remote.model.NotaResponse
 import com.nitanmal.app.data.remote.model.NotasResponse
 import com.nitanmal.app.data.remote.model.NotificacionesResponse
 import com.nitanmal.app.data.remote.model.PreguntasResponse
+import com.nitanmal.app.data.remote.model.ProduccionCreateInput
+import com.nitanmal.app.data.remote.model.ProduccionResponse
+import com.nitanmal.app.data.remote.model.ProduccionUpdateInput
 import com.nitanmal.app.data.remote.model.ReaccionInput
+import com.nitanmal.app.data.remote.model.ReunionInput
+import com.nitanmal.app.data.remote.model.ReunionResponse
+import com.nitanmal.app.data.remote.model.ReunionesResponse
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -36,6 +44,18 @@ interface ITeamApiService {
     // Notificaciones
     suspend fun listNotificaciones(token: String): NotificacionesResponse
     suspend fun marcarNotificacionesLeidas(token: String)
+
+    // Producción
+    suspend fun listProduccion(token: String): ProduccionResponse
+    suspend fun createEpisodio(token: String, input: ProduccionCreateInput): EpisodioResponse
+    suspend fun updateEpisodio(token: String, id: String, input: ProduccionUpdateInput): EpisodioResponse
+    suspend fun deleteEpisodio(token: String, id: String)
+    suspend fun listEquipo(token: String): EquipoResponse
+
+    // Reuniones
+    suspend fun listReuniones(token: String): ReunionesResponse
+    suspend fun createReunion(token: String, input: ReunionInput): ReunionResponse
+    suspend fun deleteReunion(token: String, id: String)
 }
 
 class TeamApiService : ITeamApiService {
@@ -69,8 +89,15 @@ class TeamApiService : ITeamApiService {
 
     private fun parseError(status: Int, bodyText: String): String {
         // El backend responde { "error": "..." } — lo mostramos directo si viene.
-        val match = Regex("\"error\"\\s*:\\s*\"([^\"]+)\"").find(bodyText)
-        return match?.groupValues?.get(1) ?: "HTTP $status"
+        val error = Regex("\"error\"\\s*:\\s*\"([^\"]+)\"").find(bodyText)
+            ?.groupValues?.get(1) ?: return "HTTP $status"
+        // El gate de Definición de Hecho agrega { "faltantes": ["Campo", ...] }.
+        val faltantes = Regex("\"faltantes\"\\s*:\\s*\\[([^\\]]*)]").find(bodyText)
+            ?.groupValues?.get(1)
+            ?.split(",")
+            ?.map { it.trim().removeSurrounding("\"") }
+            ?.filter { it.isNotBlank() }
+        return if (faltantes.isNullOrEmpty()) error else "$error Faltan: ${faltantes.joinToString(", ")}"
     }
 
     // ── Ideas ──
@@ -117,4 +144,30 @@ class TeamApiService : ITeamApiService {
 
     override suspend fun marcarNotificacionesLeidas(token: String) =
         request<Unit>(HttpMethod.Post, "/notificaciones/leer", token)
+
+    // ── Producción ──
+    override suspend fun listProduccion(token: String): ProduccionResponse =
+        request(HttpMethod.Get, "/produccion", token)
+
+    override suspend fun createEpisodio(token: String, input: ProduccionCreateInput): EpisodioResponse =
+        request(HttpMethod.Post, "/produccion", token, input)
+
+    override suspend fun updateEpisodio(token: String, id: String, input: ProduccionUpdateInput): EpisodioResponse =
+        request(HttpMethod.Put, "/produccion/$id", token, input)
+
+    override suspend fun deleteEpisodio(token: String, id: String) =
+        request<Unit>(HttpMethod.Delete, "/produccion/$id", token)
+
+    override suspend fun listEquipo(token: String): EquipoResponse =
+        request(HttpMethod.Get, "/equipo", token)
+
+    // ── Reuniones ──
+    override suspend fun listReuniones(token: String): ReunionesResponse =
+        request(HttpMethod.Get, "/reuniones", token)
+
+    override suspend fun createReunion(token: String, input: ReunionInput): ReunionResponse =
+        request(HttpMethod.Post, "/reuniones", token, input)
+
+    override suspend fun deleteReunion(token: String, id: String) =
+        request<Unit>(HttpMethod.Delete, "/reuniones/$id", token)
 }
