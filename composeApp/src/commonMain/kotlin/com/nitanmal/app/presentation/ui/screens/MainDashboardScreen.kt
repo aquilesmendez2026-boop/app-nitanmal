@@ -9,18 +9,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.nitanmal.app.core.localization.rememberStrings
+import androidx.navigation.toRoute
+import com.nitanmal.app.data.repository.TeamRepositoryImpl
+import com.nitanmal.app.domain.auth.LocalPlatformAuth
 import com.nitanmal.app.domain.model.User
-import com.nitanmal.app.presentation.navigation.CoursesRoute
-import com.nitanmal.app.presentation.navigation.GradesRoute
+import com.nitanmal.app.presentation.navigation.BuzonRoute
 import com.nitanmal.app.presentation.navigation.HomeRoute
+import com.nitanmal.app.presentation.navigation.IdeaDetailRoute
+import com.nitanmal.app.presentation.navigation.IdeasRoute
 import com.nitanmal.app.presentation.navigation.SettingsRoute
 import com.nitanmal.app.presentation.ui.components.NitanmalNavigationBar
+import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
+import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
 
 /**
- * Dashboard principal con navbar inferior (misma estructura que uminer).
- * Home / Cursos / Notas son placeholders por ahora; Ajustes permite
- * cambiar tema, cambiar de portal y cerrar sesión.
+ * Dashboard principal con navbar inferior (misma estructura que uminer):
+ * Inicio (resumen) / Ideas / Buzón / Ajustes.
  */
 @Composable
 fun MainDashboardScreen(
@@ -32,10 +36,14 @@ fun MainDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
-    val strings = rememberStrings()
+    val platformAuth = LocalPlatformAuth.current
+    val teamRepository = remember { TeamRepositoryImpl(platformAuth) }
+    val ideasViewModel = remember { IdeasViewModel(teamRepository) }
+    val buzonViewModel = remember { BuzonViewModel(teamRepository) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val isAdmin = user.role == "admin" || user.role == "superadmin"
     val scaffoldBg = if (isDarkTheme) Color(0xFF0F172A) else Color(0xFFF8FAFC)
 
     Scaffold(
@@ -62,15 +70,46 @@ fun MainDashboardScreen(
                 startDestination = HomeRoute
             ) {
                 composable<HomeRoute> {
-                    HomeScreen(user = user)
+                    HomeScreen(
+                        user = user,
+                        ideasViewModel = ideasViewModel,
+                        buzonViewModel = buzonViewModel,
+                        onGoToIdeas = {
+                            navController.navigate(IdeasRoute) { launchSingleTop = true }
+                        },
+                        onGoToBuzon = {
+                            navController.navigate(BuzonRoute) { launchSingleTop = true }
+                        },
+                        onOpenIdea = { notaId ->
+                            navController.navigate(IdeaDetailRoute(notaId))
+                        }
+                    )
                 }
 
-                composable<CoursesRoute> {
-                    PlaceholderScreen(title = strings.navCourses)
+                composable<IdeasRoute> {
+                    IdeasScreen(
+                        viewModel = ideasViewModel,
+                        currentUserId = user.id,
+                        isAdmin = isAdmin,
+                        onOpenIdea = { notaId ->
+                            navController.navigate(IdeaDetailRoute(notaId))
+                        }
+                    )
                 }
 
-                composable<GradesRoute> {
-                    PlaceholderScreen(title = strings.navGrades)
+                composable<IdeaDetailRoute> { backStackEntry ->
+                    val route = backStackEntry.toRoute<IdeaDetailRoute>()
+                    IdeaDetailScreen(
+                        notaId = route.notaId,
+                        viewModel = ideasViewModel,
+                        currentUserId = user.id,
+                        isAdmin = isAdmin,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable<BuzonRoute> {
+                    BuzonScreen(viewModel = buzonViewModel)
                 }
 
                 composable<SettingsRoute> {

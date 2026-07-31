@@ -17,10 +17,13 @@ object DashboardRoute
 object HomeRoute
 
 @Serializable
-object CoursesRoute
+object IdeasRoute
 
 @Serializable
-object GradesRoute
+object BuzonRoute
 
 @Serializable
 object SettingsRoute
+
+@Serializable
+data class IdeaDetailRoute(val notaId: String)

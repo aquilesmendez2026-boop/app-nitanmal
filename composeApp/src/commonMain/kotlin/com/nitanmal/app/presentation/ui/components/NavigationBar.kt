@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.nitanmal.app.core.localization.rememberStrings
 import com.nitanmal.app.presentation.navigation.*
 import com.nitanmal.app.presentation.ui.icons.AppIcons
+import com.nitanmal.app.presentation.ui.icons.AppIcons2
 
 @Composable
 fun NitanmalNavigationBar(
@@ -23,30 +24,24 @@ fun NitanmalNavigationBar(
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
-    val items = listOf(strings.navHome, strings.navCourses, strings.navGrades, strings.navSettings)
-    val routes = listOf(HomeRoute, CoursesRoute, GradesRoute, SettingsRoute)
-    val selectedIcons = listOf(
+    val items = listOf(strings.navHome, strings.navIdeas, strings.navBuzon, strings.navSettings)
+    val routes = listOf(HomeRoute, IdeasRoute, BuzonRoute, SettingsRoute)
+    val icons = listOf(
         AppIcons.Home,
-        AppIcons.School,
-        AppIcons.Star,
-        AppIcons.Settings
-    )
-    val unselectedIcons = listOf(
-        AppIcons.Home,
-        AppIcons.School,
-        AppIcons.Star,
+        AppIcons2.Lightbulb,
+        AppIcons2.Mail,
         AppIcons.Settings
     )
 
     val homeRouteName     = HomeRoute::class.qualifiedName
-    val coursesRouteName  = CoursesRoute::class.qualifiedName
-    val gradesRouteName   = GradesRoute::class.qualifiedName
+    val ideasRouteName    = IdeasRoute::class.qualifiedName
+    val buzonRouteName    = BuzonRoute::class.qualifiedName
     val settingsRouteName = SettingsRoute::class.qualifiedName
 
     val selectedIndex = when (currentRoute) {
         homeRouteName     -> 0
-        coursesRouteName  -> 1
-        gradesRouteName   -> 2
+        ideasRouteName    -> 1
+        buzonRouteName    -> 2
         settingsRouteName -> 3
         else              -> 0
     }
@@ -69,7 +64,7 @@ fun NitanmalNavigationBar(
                 NavigationBarItem(
                     icon = {
                         Icon(
-                            imageVector = if (selected) selectedIcons[index] else unselectedIcons[index],
+                            imageVector = icons[index],
                             contentDescription = item,
                         )
                     },
