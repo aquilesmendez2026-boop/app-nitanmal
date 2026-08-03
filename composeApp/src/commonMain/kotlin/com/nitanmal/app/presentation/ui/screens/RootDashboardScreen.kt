@@ -162,14 +162,25 @@ fun RootDashboardScreen(
                 composable<FanInicioRoute> {
                     InicioFanScreen(
                         user = user,
+                        isAdmin = isAdmin,
                         fanViewModel = fanViewModel,
                         canalesViewModel = canalesViewModel,
+                        miZonaViewModel = miZonaViewModel,
+                        produccionViewModel = produccionViewModel,
+                        ideasViewModel = ideasViewModel,
+                        planificadorViewModel = planificadorViewModel,
+                        reunionesViewModel = reunionesViewModel,
+                        buzonViewModel = buzonViewModel,
                         onGoToEnVivo = { navController.navigate(EnVivoRoute) { launchSingleTop = true } },
                         onGoToEpisodios = { navController.navigate(EpisodiosFanRoute) { launchSingleTop = true } },
                         onOpenEpisodio = { id ->
                             navController.navigate(EpisodiosFanRoute) { launchSingleTop = true }
                             navController.navigate(EpisodioFanDetailRoute(id))
-                        }
+                        },
+                        onGoToMiZona = { navController.navigate(MiZonaRoute) { launchSingleTop = true } },
+                        onGoToTrabajo = { navController.navigate(TrabajoRoute) { launchSingleTop = true } },
+                        onGoToAgenda = { navController.navigate(AgendaEquipoRoute) { launchSingleTop = true } },
+                        onGoToAdmin = { navController.navigate(AdminRoute) { launchSingleTop = true } }
                     )
                 }
                 composable<EnVivoRoute> { EnVivoScreen(fanViewModel = fanViewModel) }

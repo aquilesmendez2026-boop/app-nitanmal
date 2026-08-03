@@ -21,17 +21,28 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nitanmal.app.core.localization.rememberStrings
+import com.nitanmal.app.core.util.todayIsoDate
 import com.nitanmal.app.domain.model.EpisodioFan
 import com.nitanmal.app.domain.model.Evento
+import com.nitanmal.app.domain.model.Plantillas
 import com.nitanmal.app.domain.model.User
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalTextField
 import com.nitanmal.app.presentation.ui.components.molecules.CanalCard
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
+import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
 import com.nitanmal.app.presentation.viewmodel.CanalesViewModel
 import com.nitanmal.app.presentation.viewmodel.FanViewModel
+import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
+import com.nitanmal.app.presentation.viewmodel.MiZonaViewModel
+import com.nitanmal.app.presentation.viewmodel.PlanificadorViewModel
+import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
+import com.nitanmal.app.presentation.viewmodel.ReunionesViewModel
 
 private fun youtubeUrl(videoId: String) = "https://www.youtube.com/watch?v=$videoId"
+
+/** "1 sorteo activo" / "3 sorteos activos" */
+private fun cuenta(n: Int, singular: String, plural: String) = if (n == 1) "1 $singular" else "$n $plural"
 
 // ═══════════════ INICIO FAN ═══════════════
 
@@ -39,21 +50,74 @@ private fun youtubeUrl(videoId: String) = "https://www.youtube.com/watch?v=$vide
 @Composable
 fun InicioFanScreen(
     user: User,
+    isAdmin: Boolean,
     fanViewModel: FanViewModel,
     canalesViewModel: CanalesViewModel,
+    miZonaViewModel: MiZonaViewModel,
+    produccionViewModel: ProduccionViewModel,
+    ideasViewModel: IdeasViewModel,
+    planificadorViewModel: PlanificadorViewModel,
+    reunionesViewModel: ReunionesViewModel,
+    buzonViewModel: BuzonViewModel,
     onGoToEnVivo: () -> Unit,
     onGoToEpisodios: () -> Unit,
     onOpenEpisodio: (String) -> Unit,
+    onGoToMiZona: () -> Unit,
+    onGoToTrabajo: () -> Unit,
+    onGoToAgenda: () -> Unit,
+    onGoToAdmin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
     val uiState by fanViewModel.uiState.collectAsState()
     val canalesState by canalesViewModel.uiState.collectAsState()
+    val miZonaState by miZonaViewModel.uiState.collectAsState()
+    val prodState by produccionViewModel.uiState.collectAsState()
+    val ideasState by ideasViewModel.uiState.collectAsState()
+    val planState by planificadorViewModel.uiState.collectAsState()
+    val reunionesState by reunionesViewModel.uiState.collectAsState()
+    val buzonState by buzonViewModel.uiState.collectAsState()
     val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(Unit) {
         if (uiState.episodios.isEmpty()) fanViewModel.load() else fanViewModel.refreshLive()
         if (canalesState.canales.isEmpty()) canalesViewModel.load()
+        if (!user.esEquipo && miZonaState.zona == null) miZonaViewModel.load()
+        if (user.esEquipo) {
+            if (prodState.episodios.isEmpty()) produccionViewModel.load()
+            if (ideasState.notas.isEmpty()) ideasViewModel.load()
+            if (planState.posts.isEmpty()) planificadorViewModel.load()
+            if (reunionesState.reuniones.isEmpty()) reunionesViewModel.load()
+            if (buzonState.preguntas.isEmpty()) buzonViewModel.load()
+        }
+    }
+
+    // Trabajo asignado a mí (mismos filtros que MiTrabajoScreen)
+    val hoy = todayIsoDate()
+    val pendientes = remember(prodState.episodios, ideasState.notas, planState.posts) {
+        var total = 0
+        var atrasados = 0
+        prodState.episodios.forEach { ep ->
+            Plantillas.STAGES.forEach { stage ->
+                val etapa = ep.etapa(stage)
+                if (etapa.responsableId == user.id && etapa.estado != "aprobada") {
+                    total++
+                    val fecha = etapa.fecha
+                    if (!fecha.isNullOrBlank() && fecha < hoy) atrasados++
+                }
+            }
+        }
+        ideasState.notas.forEach { nota ->
+            if (nota.responsableId == user.id &&
+                (nota.estado == null || nota.estado == "nueva" || nota.estado == "revision")
+            ) total++
+        }
+        planState.posts.forEach { post ->
+            if (post.responsableId == user.id &&
+                post.estado in listOf("sugerido", "borrador", "programado")
+            ) total++
+        }
+        total to atrasados
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -62,7 +126,7 @@ fun InicioFanScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // Saludo
+            // Saludo + rol y plan
             item {
                 Column {
                     Text(
@@ -76,6 +140,18 @@ fun InicioFanScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ChipInfo(
+                            texto = when (user.role) {
+                                "superadmin" -> "Superadmin"
+                                "admin" -> "Admin"
+                                "participante" -> "Participante"
+                                else -> "Miembro"
+                            }
+                        )
+                        ChipInfo(texto = if (user.esPremium) "Premium 🥃" else "Plan gratis")
+                    }
                 }
             }
 
@@ -156,91 +232,89 @@ fun InicioFanScreen(
                 }
             }
 
-            // Sorteo activo
-            uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
-                item {
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "🎁 ${strings.fanSorteoActivo}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = "${sorteo.titulo} — ${sorteo.premio}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
+            // ── Resumen de acceso por rol ──
+            item {
+                Text(
+                    text = "Tu acceso",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             }
-
-            // Episodios recientes
-            if (uiState.recientes.isNotEmpty()) {
+            item {
+                val ultimo = uiState.recientes.firstOrNull()
+                ResumenCard(
+                    emoji = "🎬",
+                    titulo = strings.fanNavEpisodios,
+                    resumen = ultimo?.let { "Último: #${it.number} · ${it.title}" }
+                        ?: "Todos los capítulos del podcast",
+                    onClick = onGoToEpisodios
+                )
+            }
+            if (!user.esEquipo) {
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = strings.fanEpisodiosRecientes,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = strings.fanVerTodos,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable(onClick = onGoToEpisodios)
-                        )
-                    }
-                }
-                items(uiState.recientes, key = { it.id }) { episodio ->
-                    EpisodioCardFan(
-                        episodio = episodio,
-                        esPremiumUsuario = user.esPremium,
-                        onClick = { onOpenEpisodio(episodio.id) }
+                    val zona = miZonaState.zona
+                    ResumenCard(
+                        emoji = "⭐",
+                        titulo = strings.fanNavMiZona,
+                        resumen = if (zona != null)
+                            cuenta(zona.sorteos.count { it.activo }, "sorteo activo", "sorteos activos") +
+                                " · " + cuenta(zona.encuestas.count { it.activa }, "encuesta", "encuestas") +
+                                " · " + cuenta(miZonaState.descargas.size, "descarga", "descargas")
+                        else "Sorteos, encuestas, sugerencias y descargas",
+                        accent = MaterialTheme.colorScheme.secondary,
+                        onClick = onGoToMiZona
                     )
                 }
             }
-
-            // Buzón CTA
-            item {
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = strings.fanBuzonCta,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = strings.fanBuzonDesc,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        NitanmalButton(
-                            text = strings.fanEnviar,
-                            onClick = { fanViewModel.setShowPreguntaSheet(true) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            if (user.esEquipo) {
+                item {
+                    val (total, atrasados) = pendientes
+                    ResumenCard(
+                        emoji = "💼",
+                        titulo = strings.navTrabajo,
+                        resumen = when {
+                            total == 0 -> "Sin pendientes asignados 🎉"
+                            atrasados > 0 -> cuenta(total, "pendiente asignado", "pendientes asignados") +
+                                " · " + cuenta(atrasados, "atrasado", "atrasados")
+                            else -> cuenta(total, "pendiente asignado", "pendientes asignados")
+                        },
+                        accent = if (pendientes.second > 0) Color(0xFFdc2626)
+                        else MaterialTheme.colorScheme.primary,
+                        onClick = onGoToTrabajo
+                    )
                 }
+                item {
+                    val preguntasPendientes = buzonState.preguntas.count { !it.answered }
+                    ResumenCard(
+                        emoji = "📅",
+                        titulo = strings.navAgenda,
+                        resumen = cuenta(prodState.episodios.size, "episodio en producción", "episodios en producción") +
+                            " · " + cuenta(reunionesState.proximas.size, "reunión próxima", "reuniones próximas") +
+                            " · " + cuenta(preguntasPendientes, "pregunta sin responder", "preguntas sin responder"),
+                        onClick = onGoToAgenda
+                    )
+                }
+            }
+            if (isAdmin) {
+                item {
+                    ResumenCard(
+                        emoji = "🛡️",
+                        titulo = strings.navAdmin,
+                        resumen = (if (uiState.live?.isLive == true) "🔴 En vivo ahora"
+                        else "Sin transmisión") +
+                            " · " + cuenta(uiState.sorteosPublicos.size, "sorteo abierto", "sorteos abiertos"),
+                        onClick = onGoToAdmin
+                    )
+                }
+            }
+            item {
+                ResumenCard(
+                    emoji = "💬",
+                    titulo = strings.fanBuzonCta,
+                    resumen = strings.fanBuzonDesc,
+                    onClick = { fanViewModel.setShowPreguntaSheet(true) }
+                )
             }
 
             // Canales / redes sociales
@@ -331,6 +405,82 @@ fun InicioFanScreen(
                     enabled = !uiState.isEnviandoPregunta && contenido.isNotBlank()
                 )
             }
+        }
+    }
+}
+
+/** Chip informativo pequeño (rol, plan). */
+@Composable
+private fun ChipInfo(texto: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    ) {
+        Text(
+            text = texto,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+        )
+    }
+}
+
+/** Card de resumen de una sección accesible; toca para abrirla. */
+@Composable
+private fun ResumenCard(
+    emoji: String,
+    titulo: String,
+    resumen: String,
+    accent: Color = MaterialTheme.colorScheme.primary,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = accent.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = emoji,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = resumen,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "→",
+                style = MaterialTheme.typography.titleMedium,
+                color = accent
+            )
         }
     }
 }
