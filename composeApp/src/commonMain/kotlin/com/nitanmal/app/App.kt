@@ -9,6 +9,7 @@ import com.nitanmal.app.domain.usecase.SelectClientUseCase
 import com.nitanmal.app.domain.usecase.SignInWithGoogleUseCase
 import com.nitanmal.app.domain.usecase.SignOutUseCase
 import com.nitanmal.app.presentation.ui.screens.LoginScreen
+import com.nitanmal.app.presentation.ui.screens.PortadaPublicaScreen
 import com.nitanmal.app.presentation.ui.screens.RootDashboardScreen
 import com.nitanmal.app.presentation.ui.screens.SplashScreen
 import com.nitanmal.app.presentation.viewmodel.AuthViewModel
@@ -53,6 +54,11 @@ fun App() {
                     onBack = { showLogin = false }
                 )
 
+                // Visitantes: portada pública sin navbar; la barra aparece con sesión.
+                user == null -> PortadaPublicaScreen(
+                    onLoginClick = { showLogin = true }
+                )
+
                 else -> RootDashboardScreen(
                     user = user,
                     tema = tema,
@@ -60,8 +66,7 @@ fun App() {
                     onGuardarPerfil = { apodo, pais, region, telefono ->
                         authViewModel.updateProfile(apodo, pais, region, telefono)
                     },
-                    onSignOutClick = { authViewModel.signOut() },
-                    onLoginClick = { showLogin = true }
+                    onSignOutClick = { authViewModel.signOut() }
                 )
             }
         }

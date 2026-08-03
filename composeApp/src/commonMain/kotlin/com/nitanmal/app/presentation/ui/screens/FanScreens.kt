@@ -1,7 +1,5 @@
 package com.nitanmal.app.presentation.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -18,17 +16,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import nitanmal.composeapp.generated.resources.Res
-import nitanmal.composeapp.generated.resources.logo_nitanmal
-import org.jetbrains.compose.resources.painterResource
 import com.nitanmal.app.core.localization.rememberStrings
 import com.nitanmal.app.domain.model.EpisodioFan
 import com.nitanmal.app.domain.model.Evento
@@ -47,14 +38,12 @@ private fun youtubeUrl(videoId: String) = "https://www.youtube.com/watch?v=$vide
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InicioFanScreen(
-    user: User?,
+    user: User,
     fanViewModel: FanViewModel,
     canalesViewModel: CanalesViewModel,
     onGoToEnVivo: () -> Unit,
     onGoToEpisodios: () -> Unit,
     onOpenEpisodio: (String) -> Unit,
-    onSwitchToEquipo: (() -> Unit)?,
-    onLoginClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
@@ -73,55 +62,19 @@ fun InicioFanScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // Saludo + switch modo equipo
+            // Saludo
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Ni Tan Mal",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = if (user != null) {
-                                "¡Hola, ${user.apodo?.takeIf { it.isNotBlank() } ?: user.name.split(" ").firstOrNull() ?: ""}!"
-                            } else {
-                                "El podcast sin filtro"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (user == null && onLoginClick != null) {
-                        // Botón de login para visitantes (arriba a la derecha)
-                        Button(
-                            onClick = onLoginClick,
-                            shape = RoundedCornerShape(999.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text(strings.fanEntrar, fontWeight = FontWeight.Bold)
-                        }
-                    } else if (onSwitchToEquipo != null) {
-                        TextButton(onClick = onSwitchToEquipo) {
-                            Text(
-                                text = strings.cuentaModoEquipo,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Hero de portada (visitantes): logo protagonista, como la web
-            if (user == null) {
-                item {
-                    HeroPortada(
-                        onEscuchanos = onGoToEpisodios,
-                        onProximosShows = onGoToEnVivo
+                Column {
+                    Text(
+                        text = "Ni Tan Mal",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "¡Hola, ${user.apodo?.takeIf { it.isNotBlank() } ?: user.name.split(" ").firstOrNull() ?: ""}!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -203,8 +156,8 @@ fun InicioFanScreen(
                 }
             }
 
-            // Sorteo activo (teaser para usuarios con sesión; los visitantes lo ven en su bloque)
-            if (user != null) uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
+            // Sorteo activo
+            uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
                 item {
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -231,170 +184,8 @@ fun InicioFanScreen(
                 }
             }
 
-            if (user == null) {
-                // Bloques compactos: cada card se expande al tocarla para ver el detalle.
-                item {
-                    BloquePortada(
-                        emoji = "🎬",
-                        titulo = "Episodios",
-                        subtitulo = uiState.recientes.firstOrNull()
-                            ?.let { "Último: #${it.number} · ${it.title}" }
-                            ?: "Muy pronto publicamos el primero"
-                    ) {
-                        uiState.recientes.forEach { episodio ->
-                            EpisodioCardFan(
-                                episodio = episodio,
-                                esPremiumUsuario = false,
-                                onClick = { onOpenEpisodio(episodio.id) }
-                            )
-                            Spacer(Modifier.height(8.dp))
-                        }
-                        Text(
-                            text = strings.fanVerTodos,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .clickable(onClick = onGoToEpisodios)
-                                .padding(vertical = 4.dp)
-                        )
-                    }
-                }
-                uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
-                    item {
-                        BloquePortada(
-                            emoji = "🎁",
-                            titulo = strings.fanSorteoActivo,
-                            subtitulo = sorteo.titulo,
-                            accent = MaterialTheme.colorScheme.secondary
-                        ) {
-                            Text(
-                                text = sorteo.premio,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            BotonGradiente(texto = "Participar gratis") { onLoginClick?.invoke() }
-                        }
-                    }
-                }
-                item {
-                    BloquePortada(
-                        emoji = "⭐",
-                        titulo = "Hazte miembro",
-                        subtitulo = "Regístrate gratis y desbloquea más"
-                    ) {
-                        BENEFICIOS_PORTADA.forEach { beneficio ->
-                            Text(
-                                text = beneficio,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 3.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        BotonGradiente(texto = "Crear cuenta gratis") { onLoginClick?.invoke() }
-                    }
-                }
-                item {
-                    BloquePortada(
-                        emoji = "🎙️",
-                        titulo = "El show",
-                        subtitulo = "Lo que pasa cuando primero se actúa y después se piensa"
-                    ) {
-                        Text(
-                            text = "Ni Tan Mal es la mesa donde se cuentan las historias que no contarías sobrio. Un grupo de amigos, micrófonos abiertos y la honestidad brutal de quienes ya hicieron de todo… y lo volverían a hacer.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        ValoresChips()
-                        Spacer(Modifier.height(12.dp))
-                        FORMATOS_PORTADA.forEach { formato ->
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Text(
-                                        text = formato.tag.uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
-                                    Text(
-                                        text = formato.titulo,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        text = formato.descripcion,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                        Text(
-                            text = "“Al final del día, ninguna locura fue tan grave. Estuvo… ni tan mal.”",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontStyle = FontStyle.Italic,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                        )
-                    }
-                }
-                if (uiState.proximosEventos.isNotEmpty()) {
-                    item {
-                        BloquePortada(
-                            emoji = "📅",
-                            titulo = "Horarios",
-                            subtitulo = "¿Cuándo nos sintonizas?"
-                        ) {
-                            uiState.proximosEventos.take(6).forEach { evento ->
-                                EventoCard(evento)
-                                Spacer(Modifier.height(8.dp))
-                            }
-                        }
-                    }
-                }
-                if (canalesState.visibles.isNotEmpty()) {
-                    item {
-                        BloquePortada(
-                            emoji = "📣",
-                            titulo = strings.canalesTitle,
-                            subtitulo = "Síguenos y no te pierdas nada"
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                            ) {
-                                canalesState.visibles.forEach { canal -> CanalCard(canal) }
-                            }
-                        }
-                    }
-                }
-                item {
-                    BloquePortada(
-                        emoji = "💬",
-                        titulo = strings.fanBuzonCta,
-                        subtitulo = strings.fanBuzonDesc
-                    ) {
-                        NitanmalButton(
-                            text = strings.fanEnviar,
-                            onClick = { onLoginClick?.invoke() },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-
             // Episodios recientes
-            if (user != null && uiState.recientes.isNotEmpty()) {
+            if (uiState.recientes.isNotEmpty()) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -415,14 +206,14 @@ fun InicioFanScreen(
                 items(uiState.recientes, key = { it.id }) { episodio ->
                     EpisodioCardFan(
                         episodio = episodio,
-                        esPremiumUsuario = user?.esPremium == true,
+                        esPremiumUsuario = user.esPremium,
                         onClick = { onOpenEpisodio(episodio.id) }
                     )
                 }
             }
 
             // Buzón CTA
-            if (user != null) item {
+            item {
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -445,11 +236,7 @@ fun InicioFanScreen(
                         Spacer(Modifier.height(12.dp))
                         NitanmalButton(
                             text = strings.fanEnviar,
-                            onClick = {
-                                // El buzón requiere sesión: los visitantes van al login.
-                                if (user == null) onLoginClick?.invoke()
-                                else fanViewModel.setShowPreguntaSheet(true)
-                            },
+                            onClick = { fanViewModel.setShowPreguntaSheet(true) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -457,7 +244,7 @@ fun InicioFanScreen(
             }
 
             // Canales / redes sociales
-            if (user != null && canalesState.visibles.isNotEmpty()) {
+            if (canalesState.visibles.isNotEmpty()) {
                 item {
                     Text(
                         text = strings.canalesTitle,
@@ -543,220 +330,6 @@ fun InicioFanScreen(
                     isLoading = uiState.isEnviandoPregunta,
                     enabled = !uiState.isEnviandoPregunta && contenido.isNotBlank()
                 )
-            }
-        }
-    }
-}
-
-// ═══════════════ SECCIONES DE PORTADA (visitantes, espejo de la web) ═══════════════
-
-private data class FormatoPortada(val tag: String, val titulo: String, val descripcion: String)
-
-private val FORMATOS_PORTADA = listOf(
-    FormatoPortada(
-        tag = "En vivo",
-        titulo = "Streamers de juegos",
-        descripcion = "Partidas en directo, reacciones honestas y retos que nadie en su sano juicio aceptaría. Los juegos son la excusa; el caos es el contenido."
-    ),
-    FormatoPortada(
-        tag = "Sin filtro",
-        titulo = "Noches de conversación con un trago",
-        descripcion = "Cuando bajan las luces y sube el trago, salen las mejores historias. Charlas relajadas sobre la vida, las decisiones impulsivas y todo lo que hacemos antes de pensar."
-    )
-)
-
-private val VALORES_PORTADA = listOf("Sin filtro", "Risas garantizadas", "Anécdotas reales", "Cero pretensiones")
-
-private val BENEFICIOS_PORTADA = listOf(
-    "✨ Contenido exclusivo",
-    "⬇️ Descargas exclusivas",
-    "🗳️ Vota temas y sugiere invitados",
-    "🎁 Sorteos y novedades primero"
-)
-
-/**
- * Card compacta de portada: título + gancho de una línea.
- * Al tocarla se expande y muestra el contenido completo.
- */
-@Composable
-private fun BloquePortada(
-    emoji: String,
-    titulo: String,
-    subtitulo: String? = null,
-    accent: Color = MaterialTheme.colorScheme.primary,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { expanded = !expanded }
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = accent.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = emoji,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = titulo,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    if (subtitulo != null) {
-                        Text(
-                            text = subtitulo,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = if (expanded) 3 else 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = if (expanded) "▴" else "▾",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                )
-            }
-            AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(top = 14.dp)) { content() }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BotonGradiente(
-    texto: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(999.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-                )
-            )
-            .clickable(onClick = onClick)
-            .padding(vertical = 14.dp)
-    ) {
-        Text(text = texto, fontWeight = FontWeight.Bold, color = Color.White)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ValoresChips(modifier: Modifier = Modifier) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        VALORES_PORTADA.forEach { valor ->
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                )
-            ) {
-                Text(
-                    text = valor,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeroPortada(
-    onEscuchanos: () -> Unit,
-    onProximosShows: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp)
-    ) {
-        Text(
-            text = "PODCAST · EN VIVO Y SIN FILTRO",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.height(10.dp))
-        Image(
-            painter = painterResource(Res.drawable.logo_nitanmal),
-            contentDescription = "Ni Tan Mal",
-            modifier = Modifier.size(190.dp)
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = buildAnnotatedString {
-                append("NI TAN ")
-                withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) { append("MAL") }
-            },
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "El podcast de los hombres y las locuras que hacen antes de pensar. Streamers de juegos, noches de conversación con un trago y cero pretensiones.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-                        )
-                    )
-                    .clickable(onClick = onEscuchanos)
-                    .padding(horizontal = 24.dp, vertical = 14.dp)
-            ) {
-                Text(
-                    text = "▶ Escúchanos",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-            OutlinedButton(
-                onClick = onProximosShows,
-                shape = RoundedCornerShape(999.dp),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)
-            ) {
-                Text("Próximos shows", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -913,7 +486,7 @@ fun EnVivoScreen(
 }
 
 @Composable
-private fun EventoCard(evento: Evento, modifier: Modifier = Modifier) {
+internal fun EventoCard(evento: Evento, modifier: Modifier = Modifier) {
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
