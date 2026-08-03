@@ -134,8 +134,8 @@ fun IdeasScreen(
         CreateIdeaSheet(
             isCreating = uiState.isCreating,
             onDismiss = { viewModel.setShowCreateSheet(false) },
-            onCreate = { titulo, contenido, etiquetas, audio ->
-                viewModel.create(titulo, contenido, etiquetas, audio)
+            onCreate = { titulo, contenido, etiquetas, audios ->
+                viewModel.create(titulo, contenido, etiquetas, audios)
             }
         )
     }
@@ -294,24 +294,26 @@ private fun MetaCounter(
     )
 }
 
+/** Audio grabado en la hoja, pendiente de publicar. */
+private data class GrabacionLocal(val bytes: ByteArray, val duracion: Int)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateIdeaSheet(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (titulo: String, contenido: String, etiquetas: List<String>, audio: AudioAdjunto?) -> Unit
+    onCreate: (titulo: String, contenido: String, etiquetas: List<String>, audios: List<AudioAdjunto>) -> Unit
 ) {
     val strings = rememberStrings()
     var titulo by remember { mutableStateOf("") }
     var contenido by remember { mutableStateOf("") }
     var seleccionadas by remember { mutableStateOf(setOf<String>()) }
 
-    // ── Grabación de audio ──
+    // ── Grabación de audio (se permiten varias, como en el web) ──
     val recorder = remember { createAudioRecorder() }
     var isRecording by remember { mutableStateOf(false) }
-    var audioBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var grabaciones by remember { mutableStateOf(listOf<GrabacionLocal>()) }
     var segundos by remember { mutableStateOf(0) }
-    var duracion by remember { mutableStateOf(0) }
     var micDenegado by remember { mutableStateOf(false) }
 
     LaunchedEffect(isRecording) {
@@ -408,113 +410,113 @@ private fun CreateIdeaSheet(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── Audio ──
-            when {
-                isRecording -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+            // ── Audios grabados ──
+            grabaciones.forEachIndexed { index, grabacion ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Icon(
+                        AppIcons2.Mic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "${strings.ideasAudioListo} ${index + 1} (${grabacion.duracion}s)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = { grabaciones = grabaciones.filterIndexed { i, _ -> i != index } },
+                        modifier = Modifier.size(32.dp),
+                        enabled = !isCreating
                     ) {
                         Icon(
-                            AppIcons2.Mic,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
+                            AppIcons2.Delete,
+                            contentDescription = "Descartar audio",
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = "${strings.ideasGrabando} ${segundos}s",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
-                        )
-                        FilledIconButton(
-                            onClick = {
-                                duracion = segundos
-                                audioBytes = recorder.stop()
-                                isRecording = false
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            ),
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(AppIcons2.Stop, contentDescription = "Detener", modifier = Modifier.size(16.dp))
-                        }
                     }
                 }
+            }
 
-                audioBytes != null -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f))
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        Icon(
-                            AppIcons2.Mic,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = "${strings.ideasAudioListo} (${duracion}s)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = { audioBytes = null },
-                            modifier = Modifier.size(32.dp),
-                            enabled = !isCreating
-                        ) {
-                            Icon(
-                                AppIcons2.Delete,
-                                contentDescription = "Descartar audio",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    OutlinedButton(
+            // ── Grabando / botón grabar ──
+            if (isRecording) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Icon(
+                        AppIcons2.Mic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "${strings.ideasGrabando} ${segundos}s",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilledIconButton(
                         onClick = {
-                            micDenegado = false
-                            recorder.requestPermission { granted ->
-                                if (granted) {
-                                    if (recorder.start()) isRecording = true
-                                } else {
-                                    micDenegado = true
-                                }
+                            val bytes = recorder.stop()
+                            if (bytes != null) {
+                                grabaciones = grabaciones + GrabacionLocal(bytes, segundos)
                             }
+                            isRecording = false
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = !isCreating,
-                        modifier = Modifier.fillMaxWidth()
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(AppIcons2.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(strings.ideasGrabar)
+                        Icon(AppIcons2.Stop, contentDescription = "Detener", modifier = Modifier.size(16.dp))
                     }
-                    if (micDenegado) {
-                        Text(
-                            text = strings.ideasMicPermiso,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = {
+                        micDenegado = false
+                        recorder.requestPermission { granted ->
+                            if (granted) {
+                                if (recorder.start()) isRecording = true
+                            } else {
+                                micDenegado = true
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isCreating,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(AppIcons2.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(strings.ideasGrabar)
+                }
+                if (micDenegado) {
+                    Text(
+                        text = strings.ideasMicPermiso,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
 
@@ -523,24 +525,26 @@ private fun CreateIdeaSheet(
             NitanmalButton(
                 text = strings.ideasPublicar,
                 onClick = {
+                    var finales = grabaciones
                     if (isRecording) {
-                        duracion = segundos
-                        audioBytes = recorder.stop()
+                        val bytes = recorder.stop()
+                        if (bytes != null) finales = finales + GrabacionLocal(bytes, segundos)
                         isRecording = false
+                        grabaciones = finales
                     }
-                    val audio = audioBytes?.let {
+                    val audios = finales.map {
                         AudioAdjunto(
-                            bytes = it,
+                            bytes = it.bytes,
                             filename = "idea-${Random.nextLong().toString(16)}.${recorder.fileExtension}",
                             contentType = recorder.mimeType
                         )
                     }
-                    onCreate(titulo, contenido, seleccionadas.toList(), audio)
+                    onCreate(titulo, contenido, seleccionadas.toList(), audios)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = isCreating,
                 enabled = !isCreating &&
-                    (titulo.isNotBlank() || contenido.isNotBlank() || audioBytes != null)
+                    (titulo.isNotBlank() || contenido.isNotBlank() || grabaciones.isNotEmpty() || isRecording)
             )
         }
     }

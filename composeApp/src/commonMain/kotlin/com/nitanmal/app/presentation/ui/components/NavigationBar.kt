@@ -28,23 +28,23 @@ fun NitanmalNavigationBar(
         strings.navHome,
         strings.navIdeas,
         strings.navProduccion,
-        strings.navReuniones,
-        strings.navBuzon
+        strings.navPlanificador,
+        strings.navAgenda
     )
-    val routes = listOf(HomeRoute, IdeasRoute, ProduccionRoute, ReunionesRoute, BuzonRoute)
+    val routes = listOf(HomeRoute, IdeasRoute, ProduccionRoute, PlanificadorRoute, AgendaRoute())
     val icons = listOf(
         AppIcons.Home,
         AppIcons2.Lightbulb,
         AppIcons2.Movie,
-        AppIcons2.Event,
-        AppIcons2.Mail
+        AppIcons2.Send,
+        AppIcons2.Event
     )
 
     val homeRouteName        = HomeRoute::class.qualifiedName
     val ideasRouteName       = IdeasRoute::class.qualifiedName
     val produccionRouteName  = ProduccionRoute::class.qualifiedName
-    val reunionesRouteName   = ReunionesRoute::class.qualifiedName
-    val buzonRouteName       = BuzonRoute::class.qualifiedName
+    val planificadorRouteName = PlanificadorRoute::class.qualifiedName
+    val agendaRouteName      = AgendaRoute::class.qualifiedName
     // Los detalles pertenecen a su pestaña: la navbar los marca como tal.
     val ideaDetailRouteName  = IdeaDetailRoute::class.qualifiedName
     val episodioDetailRouteName = EpisodioDetailRoute::class.qualifiedName
@@ -53,8 +53,8 @@ fun NitanmalNavigationBar(
         currentRoute == homeRouteName -> 0
         currentRoute == ideasRouteName -> 1
         currentRoute == produccionRouteName -> 2
-        currentRoute == reunionesRouteName -> 3
-        currentRoute == buzonRouteName -> 4
+        currentRoute == planificadorRouteName -> 3
+        agendaRouteName != null && currentRoute?.startsWith(agendaRouteName) == true -> 4
         ideaDetailRouteName != null && currentRoute?.startsWith(ideaDetailRouteName) == true -> 1
         episodioDetailRouteName != null && currentRoute?.startsWith(episodioDetailRouteName) == true -> 2
         else -> 0

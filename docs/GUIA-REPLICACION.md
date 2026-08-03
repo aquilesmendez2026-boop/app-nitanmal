@@ -136,7 +136,14 @@ Errores: `{ "error": "mensaje" }` (+ `faltantes: []` en el gate de producción).
 | PUT | `/notas/{id}/estado` | `{estado}` ∈ nueva/revision/aprobada/descartada/convertida → `{nota}` |
 | PUT | `/notas/{id}/pin` | alterna fijada → `{nota}` |
 | POST | `/notas/{id}/convertir` | crea episodio de producción → `{nota, episodioId}` |
+| PUT | `/notas/{id}` | edita titulo/contenido/enlaces/etiquetas/audios/… (autor o admin) → `{nota}` |
+| POST | `/notas/{id}/transcribir` | `{audioKey}` — lanza Amazon Transcribe → `{nota}` |
 | DELETE | `/notas/{id}` | (autor o admin; borra media de S3) |
+
+**Transcripciones**: al crear/editar una nota con audios el backend lanza la
+transcripción automáticamente. `Nota.transcripciones[audioKey] = {estado:
+procesando|listo|error, texto}`; `GET /notas` refresca el estado del job
+(la app hace polling cada 5 s mientras haya "procesando").
 
 `Nota`: `{id, titulo, contenido, audios[], imagenes[], enlaces[], etiquetas[],
 estado, pinned, reacciones{userId:emoji}, comentarios[], responsable(Id),
@@ -174,6 +181,26 @@ numero, select, checkbox, url, file`) — espejo en `domain/model/Produccion.kt`
 | POST | `/reuniones` | `{date:"AAAA-MM-DD", time:"HH:MM", title, description?, lugar?}` |
 | DELETE | `/reuniones/{id}` | autor o admin |
 
+### Planificador de contenido (posts por plataforma + agente IA)
+Estados: `sugerido / borrador / programado / publicado / descartado`.
+Plataformas: twitch, youtube, kick, tiktok, instagram, x, facebook, spotify, threads.
+**Una sola ruta con acción en el body**:
+
+| Método | Ruta | Body | Notas |
+|---|---|---|---|
+| GET | `/planificador` | — | → `{posts:[Post]}` (assets con `assetUrl` firmada) |
+| POST | `/planificador` | `{accion:"generar", tema, tono?, cta?, plataformas[]}` | agente Bedrock crea borradores → `{loteId, posts}` |
+| POST | `/planificador` | `{accion:"create", plataforma, copy, titulo?, fecha?}` | → `{post}` |
+| POST | `/planificador` | `{accion:"update", id, estado?/copy?/…}` | → `{post}` |
+| POST | `/planificador` | `{accion:"delete", id}` | |
+
+### Canales y métricas
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/socials` | → `{canales:[{plataforma,handle,url,visible,seguidores,auto,enVivo}]}` |
+| PUT | `/socials` | solo superadmin (la app no lo usa) |
+| GET | `/metricas` | → `{series:{plataforma:[{fecha,seguidores}]}, actuales:[{plataforma,seguidores,delta,fecha}]}` |
+
 ### Notificaciones (in-app)
 | Método | Ruta | Notas |
 |---|---|---|
@@ -193,12 +220,16 @@ El web graba webm/opus — por eso la reproducción usa **ExoPlayer**, no MediaP
 
 ## 6. UI / Navegación
 
-- **Navbar (5 pestañas)**: Inicio · Ideas · Producción · Reuniones · Buzón.
-  Ajustes vive en el ⚙️ del Inicio. Los **detalles marcan su pestaña** en la navbar
-  (IdeaDetail → Ideas, EpisodioDetail → Producción) y al abrirlos desde Inicio se
-  navega primero a la pestaña para que "atrás" caiga en la lista.
+- **Navbar (5 pestañas)**: Inicio · Ideas · Producción · **Planner** · **Agenda**.
+  Agenda agrupa **Reuniones | Buzón | Métricas** en sub-pestañas (mismo patrón que
+  la página Agenda del web). Ajustes vive en el ⚙️ del Inicio. Los **detalles
+  marcan su pestaña** en la navbar (IdeaDetail → Ideas, EpisodioDetail →
+  Producción) y al abrirlos desde Inicio se navega primero a la pestaña para que
+  "atrás" caiga en la lista. `AgendaRoute(tab)` permite deep-link a una sub-pestaña
+  (la tarjeta "Preguntas pendientes" del Inicio abre Agenda→Buzón).
 - **Inicio**: contadores 2×2 (ideas activas, preguntas pendientes, episodios en
-  curso, próximas reuniones) + secciones En producción / Próxima reunión /
+  curso, próximas reuniones) + fila **"Nuestros canales"** (seguidores y badge EN
+  VIVO desde `/socials`) + secciones En producción / Próxima reunión /
   Últimas ideas / Último del buzón + campana de notificaciones con badge.
 - **ViewModels compartidos**: se crean una vez en `MainDashboardScreen` y se pasan
   a las pantallas (Inicio reutiliza los mismos datos que las pestañas).

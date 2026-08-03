@@ -3,16 +3,21 @@ package com.nitanmal.app.data.repository
 import com.nitanmal.app.data.remote.ITeamApiService
 import com.nitanmal.app.data.remote.TeamApiService
 import com.nitanmal.app.data.remote.model.MediaRef
+import com.nitanmal.app.data.remote.model.NotaEditInput
 import com.nitanmal.app.data.remote.model.NotaInput
+import com.nitanmal.app.data.remote.model.PlanificadorInput
 import com.nitanmal.app.data.remote.model.ProduccionCreateInput
 import com.nitanmal.app.data.remote.model.ProduccionUpdateInput
 import com.nitanmal.app.data.remote.model.ReunionInput
 import com.nitanmal.app.data.remote.model.StageDataInput
 import com.nitanmal.app.domain.auth.PlatformAuth
+import com.nitanmal.app.domain.model.Canal
 import com.nitanmal.app.domain.model.Episodio
+import com.nitanmal.app.domain.model.Metricas
 import com.nitanmal.app.domain.model.MiembroEquipo
 import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.Notificacion
+import com.nitanmal.app.domain.model.Post
 import com.nitanmal.app.domain.model.Pregunta
 import com.nitanmal.app.domain.model.Reunion
 import com.nitanmal.app.domain.repository.AudioAdjunto
@@ -45,12 +50,12 @@ class TeamRepositoryImpl(
         titulo: String?,
         contenido: String?,
         etiquetas: List<String>,
-        audio: AudioAdjunto?
+        audios: List<AudioAdjunto>
     ): Result<Nota> = call { token ->
-        // Si hay audio grabado, primero se sube a S3 vía /notas-upload.
-        val audios = audio?.let {
-            val key = apiService.uploadNotaMedia(token, it.filename, it.contentType, it.bytes)
-            listOf(MediaRef(key = key, nombre = it.filename))
+        // Los audios grabados se suben primero a S3 vía /notas-upload.
+        val refs = audios.map { audio ->
+            val key = apiService.uploadNotaMedia(token, audio.filename, audio.contentType, audio.bytes)
+            MediaRef(key = key, nombre = audio.filename)
         }
         requireNota(
             apiService.createNota(
@@ -59,7 +64,7 @@ class TeamRepositoryImpl(
                     titulo = titulo?.takeIf { t -> t.isNotBlank() },
                     contenido = contenido?.takeIf { c -> c.isNotBlank() },
                     etiquetas = etiquetas.takeIf { e -> e.isNotEmpty() },
-                    audios = audios
+                    audios = refs.takeIf { it.isNotEmpty() }
                 )
             ).nota
         )
@@ -85,6 +90,55 @@ class TeamRepositoryImpl(
 
     override suspend fun convertirNota(id: String): Result<Nota> =
         call { requireNota(apiService.convertirNota(it, id).nota) }
+
+    override suspend fun editNota(
+        id: String,
+        titulo: String?,
+        contenido: String?,
+        etiquetas: List<String>?,
+        enlaces: List<String>?
+    ): Result<Nota> = call {
+        requireNota(
+            apiService.editNota(
+                it, id,
+                NotaEditInput(
+                    titulo = titulo,
+                    contenido = contenido,
+                    etiquetas = etiquetas,
+                    enlaces = enlaces
+                )
+            ).nota
+        )
+    }
+
+    override suspend fun transcribirNota(id: String, audioKey: String): Result<Nota> =
+        call { requireNota(apiService.transcribirNota(it, id, audioKey).nota) }
+
+    // ── Planificador ──
+    private fun requirePost(post: Post?): Post =
+        post ?: throw IllegalStateException("El backend no devolvió el post")
+
+    override suspend fun listPlanificador(): Result<List<Post>> =
+        call { apiService.listPlanificador(it).posts }
+
+    override suspend fun generarPosts(input: PlanificadorInput): Result<List<Post>> =
+        call { apiService.generarPosts(it, input).posts }
+
+    override suspend fun createPost(input: PlanificadorInput): Result<Post> =
+        call { requirePost(apiService.createPost(it, input).post) }
+
+    override suspend fun updatePost(input: PlanificadorInput): Result<Post> =
+        call { requirePost(apiService.updatePost(it, input).post) }
+
+    override suspend fun deletePost(id: String): Result<Unit> =
+        call { apiService.deletePost(it, id) }
+
+    // ── Canales y métricas ──
+    override suspend fun listSocials(): Result<List<Canal>> =
+        call { apiService.listSocials(it).canales }
+
+    override suspend fun getMetricas(): Result<Metricas> =
+        call { apiService.getMetricas(it) }
 
     // ── Buzón ──
     override suspend fun listPreguntas(): Result<List<Pregunta>> =

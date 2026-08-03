@@ -20,6 +20,8 @@ data class Nota(
     /** userId → emoji */
     val reacciones: Map<String, String>? = null,
     val comentarios: List<NotaComentario>? = null,
+    /** audioKey → transcripción (Amazon Transcribe, automática al crear/editar). */
+    val transcripciones: Map<String, Transcripcion>? = null,
     val responsableId: String? = null,
     val responsable: String? = null,
     val fechaObjetivo: String? = null,
@@ -34,6 +36,13 @@ data class NotaMedia(
     val key: String,
     val nombre: String? = null,
     val url: String? = null
+)
+
+@Serializable
+data class Transcripcion(
+    /** "procesando" | "listo" | "error" */
+    val estado: String = "procesando",
+    val texto: String = ""
 )
 
 @Serializable

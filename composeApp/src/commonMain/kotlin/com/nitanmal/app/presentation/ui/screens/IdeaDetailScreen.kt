@@ -53,12 +53,24 @@ fun IdeaDetailScreen(
 
     var comentario by remember { mutableStateOf("") }
     var confirmConvertir by remember { mutableStateOf(false) }
+    var showEditSheet by remember { mutableStateOf(false) }
+    val esAutor = nota.createdByUserId == currentUserId
 
     // Reproductor de audio (una pista a la vez)
     val audioPlayer = remember { createAudioPlayer() }
     var playingKey by remember { mutableStateOf<String?>(null) }
     DisposableEffect(Unit) {
         onDispose { audioPlayer.release() }
+    }
+
+    // Mientras haya transcripciones en curso, refrescamos cada 5 s
+    // (el backend actualiza el estado del job al listar).
+    val hayProcesando = nota.transcripciones?.values?.any { it.estado == "procesando" } == true
+    LaunchedEffect(hayProcesando, nota.id) {
+        while (hayProcesando) {
+            kotlinx.coroutines.delay(5000)
+            viewModel.refresh()
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -85,6 +97,16 @@ fun IdeaDetailScreen(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
+            if (esAutor || isAdmin) {
+                IconButton(onClick = { showEditSheet = true }) {
+                    Icon(
+                        AppIcons2.Edit,
+                        contentDescription = strings.ideasEditar,
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             EstadoChip(
                 estado = NotaEstado.fromKey(nota.estado),
                 onEstadoChange = { viewModel.setEstado(nota.id, it.key) }
@@ -166,40 +188,117 @@ fun IdeaDetailScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            val isPlaying = playingKey == audio.key
-                            FilledIconButton(
-                                onClick = {
-                                    if (isPlaying) {
-                                        audioPlayer.stop()
-                                        playingKey = null
-                                    } else {
-                                        playingKey = audio.key
-                                        audioPlayer.play(audio.url!!) { playingKey = null }
-                                    }
-                                },
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.size(36.dp)
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
-                                Icon(
-                                    if (isPlaying) AppIcons2.Stop else AppIcons2.PlayArrow,
-                                    contentDescription = if (isPlaying) "Detener" else "Reproducir",
-                                    modifier = Modifier.size(18.dp)
+                                val isPlaying = playingKey == audio.key
+                                FilledIconButton(
+                                    onClick = {
+                                        if (isPlaying) {
+                                            audioPlayer.stop()
+                                            playingKey = null
+                                        } else {
+                                            playingKey = audio.key
+                                            audioPlayer.play(audio.url!!) { playingKey = null }
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        if (isPlaying) AppIcons2.Stop else AppIcons2.PlayArrow,
+                                        contentDescription = if (isPlaying) "Detener" else "Reproducir",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = audio.nombre?.takeIf { it.isNotBlank() } ?: "Audio",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                text = audio.nombre?.takeIf { it.isNotBlank() } ?: "Audio",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+
+                            // ── Transcripción del audio ──
+                            val tx = nota.transcripciones?.get(audio.key)
+                            when {
+                                tx == null -> {
+                                    TextButton(
+                                        onClick = { viewModel.transcribir(nota.id, audio.key) },
+                                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = strings.ideasTranscribir,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+
+                                tx.estado == "procesando" -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                    ) {
+                                        CircularProgressIndicator(
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = strings.ideasTranscribiendo,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+
+                                tx.estado == "listo" && tx.texto.isNotBlank() -> {
+                                    Column(modifier = Modifier.padding(horizontal = 14.dp)) {
+                                        Text(
+                                            text = strings.ideasTranscripcion,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = tx.texto,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                                            modifier = Modifier.padding(bottom = 12.dp)
+                                        )
+                                    }
+                                }
+
+                                tx.estado == "error" -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(start = 14.dp, bottom = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = strings.ideasTranscripcionError,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        TextButton(onClick = { viewModel.transcribir(nota.id, audio.key) }) {
+                                            Text(
+                                                text = strings.ideasTranscribir,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -296,6 +395,118 @@ fun IdeaDetailScreen(
                 TextButton(onClick = { confirmConvertir = false }) { Text("Cancelar") }
             }
         )
+    }
+
+    if (showEditSheet) {
+        EditIdeaSheet(
+            nota = nota,
+            onDismiss = { showEditSheet = false },
+            onGuardar = { titulo, contenido, etiquetas, enlaces ->
+                viewModel.editar(nota.id, titulo, contenido, etiquetas, enlaces)
+                showEditSheet = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditIdeaSheet(
+    nota: com.nitanmal.app.domain.model.Nota,
+    onDismiss: () -> Unit,
+    onGuardar: (titulo: String, contenido: String, etiquetas: List<String>, enlaces: List<String>) -> Unit
+) {
+    val strings = rememberStrings()
+    var titulo by remember { mutableStateOf(nota.titulo ?: "") }
+    var contenido by remember { mutableStateOf(nota.contenido) }
+    var seleccionadas by remember { mutableStateOf(nota.etiquetas?.toSet() ?: emptySet()) }
+    var enlacesTexto by remember { mutableStateOf(nota.enlaces?.joinToString("\n") ?: "") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = strings.ideasEditar,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            NitanmalTextField(
+                value = titulo,
+                onValueChange = { titulo = it },
+                label = { Text(strings.ideasTituloLabel) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            NitanmalTextField(
+                value = contenido,
+                onValueChange = { contenido = it },
+                label = { Text(strings.ideasContenidoLabel) },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 5
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            NitanmalTextField(
+                value = enlacesTexto,
+                onValueChange = { enlacesTexto = it },
+                label = { Text(strings.ideasEnlacesHint) },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 4
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = strings.ideasEtiquetas,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            com.nitanmal.app.domain.model.NOTA_ETIQUETAS.chunked(3).forEach { fila ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    fila.forEach { (etiqueta, _) ->
+                        EtiquetaChip(
+                            etiqueta = etiqueta,
+                            selected = etiqueta in seleccionadas,
+                            onClick = {
+                                seleccionadas = if (etiqueta in seleccionadas) {
+                                    seleccionadas - etiqueta
+                                } else seleccionadas + etiqueta
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton(
+                text = strings.ideasGuardar,
+                onClick = {
+                    val enlaces = enlacesTexto.lines()
+                        .map { it.trim() }
+                        .filter { it.startsWith("http") }
+                    onGuardar(titulo, contenido, seleccionadas.toList(), enlaces)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = titulo.isNotBlank() || contenido.isNotBlank()
+            )
+        }
     }
 }
 

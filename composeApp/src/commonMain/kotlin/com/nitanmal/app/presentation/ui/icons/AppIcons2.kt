@@ -322,6 +322,27 @@ object AppIcons2 {
             }
         }
 
+    val Edit: ImageVector
+        get() = icon("Edit") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(3f, 17.25f)
+                verticalLineTo(21f)
+                horizontalLineToRelative(3.75f)
+                lineTo(17.81f, 9.94f)
+                lineToRelative(-3.75f, -3.75f)
+                lineTo(3f, 17.25f)
+                close()
+                moveTo(20.71f, 7.04f)
+                curveToRelative(0.39f, -0.39f, 0.39f, -1.02f, 0f, -1.41f)
+                lineToRelative(-2.34f, -2.34f)
+                curveToRelative(-0.39f, -0.39f, -1.02f, -0.39f, -1.41f, 0f)
+                lineToRelative(-1.83f, 1.83f)
+                lineToRelative(3.75f, 3.75f)
+                lineToRelative(1.83f, -1.83f)
+                close()
+            }
+        }
+
     val Mic: ImageVector
         get() = icon("Mic") {
             path(fill = SolidColor(Color.Black)) {

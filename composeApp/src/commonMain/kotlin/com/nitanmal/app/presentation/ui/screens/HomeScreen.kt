@@ -2,7 +2,9 @@ package com.nitanmal.app.presentation.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,13 +24,15 @@ import com.nitanmal.app.domain.model.User
 import com.nitanmal.app.presentation.ui.components.molecules.EstadoChip
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
 import com.nitanmal.app.domain.model.Plantillas
+import com.nitanmal.app.domain.model.plataformaLabel
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
+import com.nitanmal.app.presentation.viewmodel.CanalesViewModel
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
 import com.nitanmal.app.presentation.viewmodel.NotificacionesViewModel
 import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
 import com.nitanmal.app.presentation.viewmodel.ReunionesViewModel
 
-/** Inicio: resumen del trabajo del equipo — ideas, buzón, producción y reuniones. */
+/** Inicio: resumen del trabajo del equipo — ideas, buzón, producción, reuniones y canales. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -38,6 +42,7 @@ fun HomeScreen(
     notificacionesViewModel: NotificacionesViewModel,
     produccionViewModel: ProduccionViewModel,
     reunionesViewModel: ReunionesViewModel,
+    canalesViewModel: CanalesViewModel,
     onGoToIdeas: () -> Unit,
     onGoToBuzon: () -> Unit,
     onGoToProduccion: () -> Unit,
@@ -53,6 +58,7 @@ fun HomeScreen(
     val notifState by notificacionesViewModel.uiState.collectAsState()
     val prodState by produccionViewModel.uiState.collectAsState()
     val reuState by reunionesViewModel.uiState.collectAsState()
+    val canalesState by canalesViewModel.uiState.collectAsState()
     var showNotifSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -61,6 +67,7 @@ fun HomeScreen(
         if (notifState.notificaciones.isEmpty()) notificacionesViewModel.load()
         if (prodState.episodios.isEmpty()) produccionViewModel.load()
         if (reuState.reuniones.isEmpty()) reunionesViewModel.load()
+        if (canalesState.canales.isEmpty()) canalesViewModel.load()
     }
 
     val ideasActivas = ideasState.notas.count {
@@ -166,6 +173,66 @@ fun HomeScreen(
                     onClick = onGoToReuniones,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+
+        // Nuestros canales (fila horizontal con seguidores y EN VIVO)
+        if (canalesState.visibles.isNotEmpty()) {
+            item {
+                Text(
+                    text = strings.canalesTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            item {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    canalesState.visibles.forEach { canal ->
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = plataformaLabel(canal.plataforma),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (canal.enVivo) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.error
+                                        ) {
+                                            Text(
+                                                text = strings.canalesEnVivo,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = androidx.compose.ui.graphics.Color.White,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                if (canal.seguidores.isNotBlank()) {
+                                    Text(
+                                        text = canal.seguidores,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

@@ -13,24 +13,26 @@ import androidx.navigation.toRoute
 import com.nitanmal.app.data.repository.TeamRepositoryImpl
 import com.nitanmal.app.domain.auth.LocalPlatformAuth
 import com.nitanmal.app.domain.model.User
-import com.nitanmal.app.presentation.navigation.BuzonRoute
+import com.nitanmal.app.presentation.navigation.AgendaRoute
 import com.nitanmal.app.presentation.navigation.EpisodioDetailRoute
 import com.nitanmal.app.presentation.navigation.HomeRoute
 import com.nitanmal.app.presentation.navigation.IdeaDetailRoute
 import com.nitanmal.app.presentation.navigation.IdeasRoute
+import com.nitanmal.app.presentation.navigation.PlanificadorRoute
 import com.nitanmal.app.presentation.navigation.ProduccionRoute
-import com.nitanmal.app.presentation.navigation.ReunionesRoute
 import com.nitanmal.app.presentation.navigation.SettingsRoute
 import com.nitanmal.app.presentation.ui.components.NitanmalNavigationBar
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
+import com.nitanmal.app.presentation.viewmodel.CanalesViewModel
 import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
 import com.nitanmal.app.presentation.viewmodel.NotificacionesViewModel
+import com.nitanmal.app.presentation.viewmodel.PlanificadorViewModel
 import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
 import com.nitanmal.app.presentation.viewmodel.ReunionesViewModel
 
 /**
  * Dashboard principal con navbar inferior:
- * Inicio / Ideas / Producción / Reuniones / Buzón.
+ * Inicio / Ideas / Producción / Planificador / Agenda (Reuniones·Buzón·Métricas).
  * Ajustes se abre desde el engranaje del Inicio.
  */
 @Composable
@@ -50,6 +52,8 @@ fun MainDashboardScreen(
     val notificacionesViewModel = remember { NotificacionesViewModel(teamRepository) }
     val produccionViewModel = remember { ProduccionViewModel(teamRepository) }
     val reunionesViewModel = remember { ReunionesViewModel(teamRepository) }
+    val planificadorViewModel = remember { PlanificadorViewModel(teamRepository) }
+    val canalesViewModel = remember { CanalesViewModel(teamRepository) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -87,17 +91,18 @@ fun MainDashboardScreen(
                         notificacionesViewModel = notificacionesViewModel,
                         produccionViewModel = produccionViewModel,
                         reunionesViewModel = reunionesViewModel,
+                        canalesViewModel = canalesViewModel,
                         onGoToIdeas = {
                             navController.navigate(IdeasRoute) { launchSingleTop = true }
                         },
                         onGoToBuzon = {
-                            navController.navigate(BuzonRoute) { launchSingleTop = true }
+                            navController.navigate(AgendaRoute(tab = "buzon")) { launchSingleTop = true }
                         },
                         onGoToProduccion = {
                             navController.navigate(ProduccionRoute) { launchSingleTop = true }
                         },
                         onGoToReuniones = {
-                            navController.navigate(ReunionesRoute) { launchSingleTop = true }
+                            navController.navigate(AgendaRoute(tab = "reuniones")) { launchSingleTop = true }
                         },
                         onGoToSettings = {
                             navController.navigate(SettingsRoute) { launchSingleTop = true }
@@ -157,16 +162,20 @@ fun MainDashboardScreen(
                     )
                 }
 
-                composable<ReunionesRoute> {
-                    ReunionesScreen(
-                        viewModel = reunionesViewModel,
+                composable<PlanificadorRoute> {
+                    PlanificadorScreen(viewModel = planificadorViewModel)
+                }
+
+                composable<AgendaRoute> { backStackEntry ->
+                    val route = backStackEntry.toRoute<AgendaRoute>()
+                    AgendaScreen(
+                        initialTab = route.tab,
+                        reunionesViewModel = reunionesViewModel,
+                        buzonViewModel = buzonViewModel,
+                        canalesViewModel = canalesViewModel,
                         currentUserId = user.id,
                         isAdmin = isAdmin
                     )
-                }
-
-                composable<BuzonRoute> {
-                    BuzonScreen(viewModel = buzonViewModel)
                 }
 
                 composable<SettingsRoute> {

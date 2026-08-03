@@ -20,13 +20,14 @@ object HomeRoute
 object IdeasRoute
 
 @Serializable
-object BuzonRoute
-
-@Serializable
 object ProduccionRoute
 
 @Serializable
-object ReunionesRoute
+object PlanificadorRoute
+
+/** Agenda agrupa Reuniones / Buzón / Métricas (sub-pestañas, como el web). */
+@Serializable
+data class AgendaRoute(val tab: String = "reuniones")
 
 @Serializable
 object SettingsRoute

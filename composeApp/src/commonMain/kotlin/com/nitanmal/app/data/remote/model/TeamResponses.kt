@@ -1,9 +1,11 @@
 package com.nitanmal.app.data.remote.model
 
+import com.nitanmal.app.domain.model.Canal
 import com.nitanmal.app.domain.model.Episodio
 import com.nitanmal.app.domain.model.MiembroEquipo
 import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.Notificacion
+import com.nitanmal.app.domain.model.Post
 import com.nitanmal.app.domain.model.Pregunta
 import com.nitanmal.app.domain.model.Reunion
 import com.nitanmal.app.domain.model.Subtarea
@@ -103,6 +105,62 @@ data class ProduccionUpdateInput(
     val stage: String,
     val stageData: StageDataInput
 )
+
+// ── Ideas: edición y transcripción ──
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class NotaEditInput(
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val titulo: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val contenido: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val etiquetas: List<String>? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val enlaces: List<String>? = null
+)
+
+@Serializable
+data class TranscribirInput(val audioKey: String)
+
+// ── Planificador ──
+
+@Serializable
+data class PostsResponse(val posts: List<Post> = emptyList(), val error: String? = null)
+
+@Serializable
+data class PostResponse(val post: Post? = null, val error: String? = null)
+
+@Serializable
+data class GenerarResponse(
+    val loteId: String? = null,
+    val posts: List<Post> = emptyList(),
+    val error: String? = null
+)
+
+/** POST /planificador — la acción va en el body. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class PlanificadorInput(
+    val accion: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val id: String? = null,
+    // generar (agente IA)
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val tema: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val tipoPost: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val tono: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val cta: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val plataformas: List<String>? = null,
+    // create/update
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val plataforma: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val estado: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val fecha: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val titulo: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val copy: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val hashtags: List<String>? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val enlace: String? = null
+)
+
+// ── Canales y métricas ──
+
+@Serializable
+data class CanalesResponse(val canales: List<Canal> = emptyList(), val error: String? = null)
 
 // ── Reuniones ──
 

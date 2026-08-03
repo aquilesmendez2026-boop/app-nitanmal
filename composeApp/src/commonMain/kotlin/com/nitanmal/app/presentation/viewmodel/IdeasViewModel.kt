@@ -52,11 +52,11 @@ class IdeasViewModel(
         titulo: String,
         contenido: String,
         etiquetas: List<String>,
-        audio: AudioAdjunto? = null
+        audios: List<AudioAdjunto> = emptyList()
     ) {
         _uiState.value = _uiState.value.copy(isCreating = true, error = null)
         viewModelScope.launch {
-            repository.createNota(titulo, contenido, etiquetas, audio)
+            repository.createNota(titulo, contenido, etiquetas, audios)
                 .onSuccess { nota ->
                     _uiState.value = _uiState.value.copy(
                         isCreating = false,
@@ -83,6 +83,26 @@ class IdeasViewModel(
     fun setEstado(id: String, estado: String) = mutate { repository.setNotaEstado(id, estado) }
 
     fun togglePin(id: String) = mutate { repository.togglePinNota(id) }
+
+    fun editar(
+        id: String,
+        titulo: String,
+        contenido: String,
+        etiquetas: List<String>,
+        enlaces: List<String>
+    ) = mutate { repository.editNota(id, titulo, contenido, etiquetas, enlaces) }
+
+    fun transcribir(id: String, audioKey: String) =
+        mutate { repository.transcribirNota(id, audioKey) }
+
+    /** Recarga silenciosa (para refrescar transcripciones en curso). */
+    fun refresh() {
+        viewModelScope.launch {
+            repository.listNotas().onSuccess { notas ->
+                _uiState.value = _uiState.value.copy(notas = notas)
+            }
+        }
+    }
 
     fun convertir(id: String) {
         viewModelScope.launch {

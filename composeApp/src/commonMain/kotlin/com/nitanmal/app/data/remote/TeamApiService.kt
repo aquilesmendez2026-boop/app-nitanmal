@@ -2,15 +2,21 @@ package com.nitanmal.app.data.remote
 
 import com.nitanmal.app.core.logger.Logger
 import com.nitanmal.app.data.remote.model.AnsweredInput
+import com.nitanmal.app.data.remote.model.CanalesResponse
 import com.nitanmal.app.data.remote.model.ComentarioInput
 import com.nitanmal.app.data.remote.model.ConvertirResponse
 import com.nitanmal.app.data.remote.model.EpisodioResponse
 import com.nitanmal.app.data.remote.model.EquipoResponse
 import com.nitanmal.app.data.remote.model.EstadoInput
+import com.nitanmal.app.data.remote.model.GenerarResponse
+import com.nitanmal.app.data.remote.model.NotaEditInput
 import com.nitanmal.app.data.remote.model.NotaInput
 import com.nitanmal.app.data.remote.model.NotaResponse
 import com.nitanmal.app.data.remote.model.NotasResponse
 import com.nitanmal.app.data.remote.model.NotificacionesResponse
+import com.nitanmal.app.data.remote.model.PlanificadorInput
+import com.nitanmal.app.data.remote.model.PostResponse
+import com.nitanmal.app.data.remote.model.PostsResponse
 import com.nitanmal.app.data.remote.model.PreguntasResponse
 import com.nitanmal.app.data.remote.model.ProduccionCreateInput
 import com.nitanmal.app.data.remote.model.ProduccionResponse
@@ -19,8 +25,10 @@ import com.nitanmal.app.data.remote.model.ReaccionInput
 import com.nitanmal.app.data.remote.model.ReunionInput
 import com.nitanmal.app.data.remote.model.ReunionResponse
 import com.nitanmal.app.data.remote.model.ReunionesResponse
+import com.nitanmal.app.data.remote.model.TranscribirInput
 import com.nitanmal.app.data.remote.model.UploadRequest
 import com.nitanmal.app.data.remote.model.UploadUrlResponse
+import com.nitanmal.app.domain.model.Metricas
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -49,6 +57,21 @@ interface ITeamApiService {
     // Notificaciones
     suspend fun listNotificaciones(token: String): NotificacionesResponse
     suspend fun marcarNotificacionesLeidas(token: String)
+
+    // Ideas: edición y transcripción
+    suspend fun editNota(token: String, id: String, input: NotaEditInput): NotaResponse
+    suspend fun transcribirNota(token: String, id: String, audioKey: String): NotaResponse
+
+    // Planificador
+    suspend fun listPlanificador(token: String): PostsResponse
+    suspend fun generarPosts(token: String, input: PlanificadorInput): GenerarResponse
+    suspend fun createPost(token: String, input: PlanificadorInput): PostResponse
+    suspend fun updatePost(token: String, input: PlanificadorInput): PostResponse
+    suspend fun deletePost(token: String, id: String)
+
+    // Canales y métricas
+    suspend fun listSocials(token: String): CanalesResponse
+    suspend fun getMetricas(token: String): Metricas
 
     // Producción
     suspend fun listProduccion(token: String): ProduccionResponse
@@ -180,6 +203,36 @@ class TeamApiService : ITeamApiService {
 
     override suspend fun marcarNotificacionesLeidas(token: String) =
         request<Unit>(HttpMethod.Post, "/notificaciones/leer", token)
+
+    // ── Ideas: edición y transcripción ──
+    override suspend fun editNota(token: String, id: String, input: NotaEditInput): NotaResponse =
+        request(HttpMethod.Put, "/notas/$id", token, input)
+
+    override suspend fun transcribirNota(token: String, id: String, audioKey: String): NotaResponse =
+        request(HttpMethod.Post, "/notas/$id/transcribir", token, TranscribirInput(audioKey))
+
+    // ── Planificador ──
+    override suspend fun listPlanificador(token: String): PostsResponse =
+        request(HttpMethod.Get, "/planificador", token)
+
+    override suspend fun generarPosts(token: String, input: PlanificadorInput): GenerarResponse =
+        request(HttpMethod.Post, "/planificador", token, input)
+
+    override suspend fun createPost(token: String, input: PlanificadorInput): PostResponse =
+        request(HttpMethod.Post, "/planificador", token, input)
+
+    override suspend fun updatePost(token: String, input: PlanificadorInput): PostResponse =
+        request(HttpMethod.Post, "/planificador", token, input)
+
+    override suspend fun deletePost(token: String, id: String) =
+        request<Unit>(HttpMethod.Post, "/planificador", token, PlanificadorInput(accion = "delete", id = id))
+
+    // ── Canales y métricas ──
+    override suspend fun listSocials(token: String): CanalesResponse =
+        request(HttpMethod.Get, "/socials", token)
+
+    override suspend fun getMetricas(token: String): Metricas =
+        request(HttpMethod.Get, "/metricas", token)
 
     // ── Producción ──
     override suspend fun listProduccion(token: String): ProduccionResponse =

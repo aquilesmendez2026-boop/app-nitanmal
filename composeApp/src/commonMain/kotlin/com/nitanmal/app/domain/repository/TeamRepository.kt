@@ -1,10 +1,14 @@
 package com.nitanmal.app.domain.repository
 
+import com.nitanmal.app.data.remote.model.PlanificadorInput
 import com.nitanmal.app.data.remote.model.StageDataInput
+import com.nitanmal.app.domain.model.Canal
 import com.nitanmal.app.domain.model.Episodio
+import com.nitanmal.app.domain.model.Metricas
 import com.nitanmal.app.domain.model.MiembroEquipo
 import com.nitanmal.app.domain.model.Nota
 import com.nitanmal.app.domain.model.Notificacion
+import com.nitanmal.app.domain.model.Post
 import com.nitanmal.app.domain.model.Pregunta
 import com.nitanmal.app.domain.model.Reunion
 
@@ -22,7 +26,7 @@ interface TeamRepository {
         titulo: String?,
         contenido: String?,
         etiquetas: List<String>,
-        audio: AudioAdjunto? = null
+        audios: List<AudioAdjunto> = emptyList()
     ): Result<Nota>
     suspend fun deleteNota(id: String): Result<Unit>
     suspend fun reaccionarNota(id: String, emoji: String): Result<Nota>
@@ -33,6 +37,29 @@ interface TeamRepository {
 
     /** Convierte la idea en episodio de producción. Devuelve la nota actualizada. */
     suspend fun convertirNota(id: String): Result<Nota>
+
+    /** Edita título/contenido/etiquetas/enlaces (solo el creador). */
+    suspend fun editNota(
+        id: String,
+        titulo: String?,
+        contenido: String?,
+        etiquetas: List<String>?,
+        enlaces: List<String>?
+    ): Result<Nota>
+
+    /** Lanza (o consulta) la transcripción de un audio de la idea. */
+    suspend fun transcribirNota(id: String, audioKey: String): Result<Nota>
+
+    // Planificador
+    suspend fun listPlanificador(): Result<List<Post>>
+    suspend fun generarPosts(input: PlanificadorInput): Result<List<Post>>
+    suspend fun createPost(input: PlanificadorInput): Result<Post>
+    suspend fun updatePost(input: PlanificadorInput): Result<Post>
+    suspend fun deletePost(id: String): Result<Unit>
+
+    // Canales y métricas
+    suspend fun listSocials(): Result<List<Canal>>
+    suspend fun getMetricas(): Result<Metricas>
 
     // Buzón
     suspend fun listPreguntas(): Result<List<Pregunta>>
