@@ -3,7 +3,9 @@ package com.nitanmal.app.presentation.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -362,7 +364,7 @@ fun PortadaPublicaScreen(
     }
 }
 
-// ─────────── Home de la portada ───────────
+// ─────────── Home de la portada (página continua, como la web) ───────────
 
 @Composable
 private fun PortadaHome(
@@ -374,26 +376,22 @@ private fun PortadaHome(
     val strings = rememberStrings()
     val uiState by fanViewModel.uiState.collectAsState()
     val canalesState by canalesViewModel.uiState.collectAsState()
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(horizontal = 20.dp)
     ) {
         // Barra superior: identidad + login arriba a la derecha
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 12.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Ni Tan Mal",
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "El podcast sin filtro",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Button(
@@ -405,9 +403,9 @@ private fun PortadaHome(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(24.dp))
 
-        // Hero con el logo protagonista
+        // ── Hero ──
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "PODCAST · EN VIVO Y SIN FILTRO",
@@ -415,13 +413,13 @@ private fun PortadaHome(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Image(
                 painter = painterResource(Res.drawable.logo_nitanmal),
                 contentDescription = "Ni Tan Mal",
-                modifier = Modifier.size(190.dp)
+                modifier = Modifier.size(200.dp)
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = buildAnnotatedString {
                     append("NI TAN ")
@@ -431,14 +429,14 @@ private fun PortadaHome(
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = "El podcast de los hombres y las locuras que hacen antes de pensar. Streamers de juegos, noches de conversación con un trago y cero pretensiones.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -464,100 +462,294 @@ private fun PortadaHome(
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(48.dp))
 
-        // Estado en vivo / próximo show
+        // ── En vivo ──
         val live = uiState.live
         if (live?.isLive == true) {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFdc2626), Color(0xFF7f1d1d))))
-                    .clickable { onOpen(DetallePortada.EnVivo) }
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color(0xFFef4444).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, Color(0xFFef4444).copy(alpha = 0.5f))
+                ) {
                     Text(
-                        text = strings.fanEnVivoAhora,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "● EN VIVO AHORA",
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Black,
-                        color = Color.White
+                        color = Color(0xFFfca5a5),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
-                    if (live.title.isNotBlank()) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = live.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = live.title.ifBlank { "Estamos transmitiendo en vivo" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(14.dp))
+                BotonGradiente(texto = "Abrir en YouTube") {
+                    if (live.videoId.isNotBlank()) {
+                        runCatching { uriHandler.openUri("https://www.youtube.com/watch?v=${live.videoId}") }
                     }
                 }
             }
-            Spacer(Modifier.height(14.dp))
+        } else {
+            SeccionCentrada(
+                eyebrow = "En vivo",
+                titulo = "No estamos transmitiendo ahora mismo",
+                subtitulo = uiState.proximoEvento?.let { "Pero se viene el próximo show. Prepárate:" }
+                    ?: "Muy pronto anunciaremos la próxima transmisión."
+            )
+            uiState.proximoEvento?.let { proximo ->
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth().glass(20.dp).padding(20.dp)
+                ) {
+                    Text(
+                        text = proximo.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "${proximo.date} · ${proximo.time} hrs",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
 
-        // Bloques de introducción: cada uno abre su propia página
-        val ultimo = uiState.recientes.firstOrNull()
-        CardPortada(
-            emoji = "🎬",
-            titulo = "Episodios",
-            descripcion = if (ultimo != null)
-                "Último: #${ultimo.number} · ${ultimo.title}. Todos los capítulos con sus notas del show y enlaces para escucharlos donde quieras."
-            else
-                "Muy pronto publicamos el primer capítulo. Aquí vivirán todos, con sus notas del show y enlaces para escucharlos.",
-            onClick = { onOpen(DetallePortada.Episodios) }
-        )
-        uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
-            CardPortada(
-                emoji = "🎁",
-                titulo = "Sorteo activo",
-                descripcion = "${sorteo.titulo} — ${sorteo.premio}. Participa gratis con tu cuenta.",
-                accent = MaterialTheme.colorScheme.secondary,
-                onClick = { onOpen(DetallePortada.Sorteo) }
+        Spacer(Modifier.height(48.dp))
+
+        // ── Zona de registrados (panel de vidrio con borde neón, como la web) ──
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                    RoundedCornerShape(24.dp)
+                )
+                .padding(22.dp)
+        ) {
+            Text(
+                text = "⭐ ZONA DE REGISTRADOS",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Regístrate gratis y desbloquea más",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(12.dp))
+            BENEFICIOS_PORTADA.forEach { beneficio ->
+                Text(
+                    text = beneficio,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+            uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color(0xFFf59e0b).copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color(0xFFf59e0b).copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "🎁 Sorteo activo: ${sorteo.titulo}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFfbbf24),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            BotonGradiente(texto = "Crear cuenta gratis", onClick = onLoginClick)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = buildAnnotatedString {
+                    append("¿Ya tienes cuenta? ")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
+                        append("Inicia sesión")
+                    }
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onLoginClick)
             )
         }
-        CardPortada(
-            emoji = "⭐",
-            titulo = "Hazte miembro",
-            descripcion = "Regístrate gratis y desbloquea contenido exclusivo, descargas, votaciones de temas y sorteos antes que nadie.",
-            onClick = { onOpen(DetallePortada.Miembro) }
+
+        Spacer(Modifier.height(48.dp))
+
+        // ── El show ──
+        SeccionCentrada(
+            eyebrow = "El show",
+            titulo = "Lo que pasa cuando primero se actúa y después se piensa",
+            subtitulo = "Ni Tan Mal es la mesa donde se cuentan las historias que no contarías sobrio. Un grupo de amigos, micrófonos abiertos y la honestidad brutal de quienes ya hicieron de todo… y lo volverían a hacer."
         )
-        CardPortada(
-            emoji = "🎙️",
-            titulo = "El show",
-            descripcion = "La mesa donde se cuentan las historias que no contarías sobrio. Un grupo de amigos, micrófonos abiertos y cero pretensiones.",
-            onClick = { onOpen(DetallePortada.Show) }
+        Spacer(Modifier.height(18.dp))
+        ValoresChips()
+        Spacer(Modifier.height(18.dp))
+        Text(
+            text = "“Al final del día, ninguna locura fue tan grave. Estuvo… ni tan mal.”",
+            style = MaterialTheme.typography.bodyMedium,
+            fontStyle = FontStyle.Italic,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
-        CardPortada(
-            emoji = "📅",
-            titulo = "Horarios",
-            descripcion = "¿Cuándo nos sintonizas? Revisa los próximos shows en vivo y guárdalos antes de que se te olvide.",
-            onClick = { onOpen(DetallePortada.Horarios) }
+
+        Spacer(Modifier.height(48.dp))
+
+        // ── Formatos ──
+        SeccionCentrada(
+            eyebrow = "Formatos",
+            titulo = "Dos formas de meterse en problemas",
+            subtitulo = "Cada semana alternamos entre la consola y la copa. Mismo desorden, distinto escenario."
         )
+        Spacer(Modifier.height(18.dp))
+        FORMATOS_PORTADA.forEach { formato ->
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).glass(18.dp).padding(18.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f)
+                ) {
+                    Text(
+                        text = formato.tag,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = formato.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = formato.descripcion,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(Modifier.height(48.dp))
+
+        // ── Horarios ──
+        SeccionCentrada(
+            eyebrow = "Horarios",
+            titulo = "¿Cuándo nos sintonizas?",
+            subtitulo = "Estos son los próximos shows en vivo. Guárdalos antes de que se te olvide."
+        )
+        Spacer(Modifier.height(18.dp))
+        if (uiState.proximosEventos.isEmpty()) {
+            Text(
+                text = "Aún no hay shows programados. Muy pronto anunciaremos las próximas fechas.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+            )
+        } else {
+            uiState.proximosEventos.take(4).forEach { evento ->
+                EventoCard(evento)
+                Spacer(Modifier.height(10.dp))
+            }
+        }
+
+        Spacer(Modifier.height(48.dp))
+
+        // ── Episodios ──
+        SeccionCentrada(
+            eyebrow = "Episodios",
+            titulo = "Los últimos capítulos",
+            subtitulo = "Con notas del show y enlaces para escucharlos donde quieras."
+        )
+        Spacer(Modifier.height(18.dp))
+        uiState.recientes.forEach { episodio ->
+            EpisodioCardFan(
+                episodio = episodio,
+                esPremiumUsuario = false,
+                onClick = { onOpen(DetallePortada.Episodio(episodio.id)) }
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        OutlinedButton(
+            onClick = { onOpen(DetallePortada.Episodios) },
+            shape = RoundedCornerShape(999.dp),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Text("Ver todos los episodios →", fontWeight = FontWeight.SemiBold)
+        }
+
+        Spacer(Modifier.height(48.dp))
+
+        // ── Buzón ──
+        SeccionCentrada(
+            eyebrow = "Buzón",
+            titulo = strings.fanBuzonCta,
+            subtitulo = strings.fanBuzonDesc
+        )
+        Spacer(Modifier.height(18.dp))
+        BotonGradiente(texto = strings.fanEnviar, onClick = onLoginClick)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Necesitas una cuenta gratis para enviar tu pregunta.",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // ── Canales ──
         if (canalesState.visibles.isNotEmpty()) {
-            CardPortada(
-                emoji = "📣",
-                titulo = "Nuestros canales",
-                descripcion = "Twitch, YouTube, Kick, TikTok y más. Síguenos y no te pierdas ningún directo ni clip.",
-                onClick = { onOpen(DetallePortada.Canales) }
+            Spacer(Modifier.height(48.dp))
+            SeccionCentrada(
+                eyebrow = "Canales",
+                titulo = "Síguenos y no te pierdas nada"
             )
+            Spacer(Modifier.height(18.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                canalesState.visibles.forEach { canal -> CanalCard(canal) }
+            }
         }
-        CardPortada(
-            emoji = "💬",
-            titulo = "¿Tienes una pregunta o idea?",
-            descripcion = "Mándanos tu pregunta, tema o invitado. La leemos y puede terminar en un episodio.",
-            onClick = { onOpen(DetallePortada.Buzon) }
-        )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(40.dp))
         Text(
             text = "© 2026 Ni Tan Mal",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         )
     }
 }
