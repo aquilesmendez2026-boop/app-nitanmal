@@ -57,3 +57,14 @@ object MiZonaRoute
 
 @Serializable
 object CuentaRoute
+
+// ── Navbar única por rol ──
+
+@Serializable
+object TrabajoRoute
+
+@Serializable
+object AgendaEquipoRoute
+
+@Serializable
+object AdminRoute

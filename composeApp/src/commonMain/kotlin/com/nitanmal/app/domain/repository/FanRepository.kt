@@ -22,4 +22,9 @@ interface FanRepository {
     suspend fun participarSorteo(id: String): Result<ParticiparResponse>
     suspend fun votarEncuesta(id: String, opcionId: String): Result<Unit>
     suspend fun enviarPregunta(contenido: String): Result<Unit>
+
+    // Admin
+    suspend fun setLive(live: com.nitanmal.app.domain.model.LiveState): Result<com.nitanmal.app.domain.model.LiveState>
+    suspend fun cerrarSorteo(id: String): Result<Unit>
+    suspend fun elegirGanador(id: String): Result<com.nitanmal.app.data.remote.Ganador?>
 }

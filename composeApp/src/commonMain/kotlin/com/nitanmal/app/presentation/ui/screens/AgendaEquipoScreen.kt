@@ -15,45 +15,55 @@ import com.nitanmal.app.domain.model.MetricaActual
 import com.nitanmal.app.domain.model.plataformaLabel
 import com.nitanmal.app.presentation.viewmodel.BuzonViewModel
 import com.nitanmal.app.presentation.viewmodel.CanalesViewModel
+import com.nitanmal.app.presentation.viewmodel.IdeasViewModel
+import com.nitanmal.app.presentation.viewmodel.PlanificadorViewModel
+import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
 import com.nitanmal.app.presentation.viewmodel.ReunionesViewModel
 
 /**
- * Agenda: agrupa Reuniones / Buzón / Métricas en sub-pestañas
- * (mismo patrón que la página Agenda del web).
+ * Agenda del equipo: los 6 módulos del staff en tabs horizontales
+ * (mismo patrón que la página /agenda del web).
  */
 @Composable
-fun AgendaScreen(
-    initialTab: String,
-    reunionesViewModel: ReunionesViewModel,
-    buzonViewModel: BuzonViewModel,
-    canalesViewModel: CanalesViewModel,
-    currentUserId: String,
+fun AgendaEquipoScreen(
+    user: com.nitanmal.app.domain.model.User,
     isAdmin: Boolean,
+    produccionViewModel: ProduccionViewModel,
+    reunionesViewModel: ReunionesViewModel,
+    ideasViewModel: IdeasViewModel,
+    planificadorViewModel: PlanificadorViewModel,
+    canalesViewModel: CanalesViewModel,
+    buzonViewModel: BuzonViewModel,
+    onOpenEpisodio: (String) -> Unit,
+    onOpenIdea: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
+    var tab by remember { mutableStateOf(0) }
     val buzonState by buzonViewModel.uiState.collectAsState()
-    var tab by remember { mutableStateOf(initialTab) }
 
     val tabs = listOf(
-        "reuniones" to strings.navReuniones,
-        "buzon" to strings.navBuzon,
-        "metricas" to strings.navMetricas
+        strings.navProduccion,
+        strings.navReuniones,
+        strings.navIdeas,
+        strings.navPlanificador,
+        strings.navMetricas,
+        strings.navBuzon
     )
-    val selectedIndex = tabs.indexOfFirst { it.first == tab }.coerceAtLeast(0)
 
     Column(modifier = modifier.fillMaxSize()) {
-        TabRow(
-            selectedTabIndex = selectedIndex,
+        ScrollableTabRow(
+            selectedTabIndex = tab,
             containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary
+            contentColor = MaterialTheme.colorScheme.primary,
+            edgePadding = 8.dp
         ) {
-            tabs.forEachIndexed { index, (key, label) ->
+            tabs.forEachIndexed { index, label ->
                 Tab(
-                    selected = selectedIndex == index,
-                    onClick = { tab = key },
+                    selected = tab == index,
+                    onClick = { tab = index },
                     text = {
-                        if (key == "buzon" && buzonState.pendientes > 0) {
+                        if (index == 5 && buzonState.pendientes > 0) {
                             BadgedBox(badge = {
                                 Badge(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -69,20 +79,41 @@ fun AgendaScreen(
         }
 
         when (tab) {
-            "buzon" -> BuzonScreen(
-                viewModel = buzonViewModel,
+            0 -> ProduccionScreen(
+                viewModel = produccionViewModel,
+                currentUserId = user.id,
+                isAdmin = isAdmin,
+                onOpenEpisodio = onOpenEpisodio,
                 modifier = Modifier.weight(1f)
             )
 
-            "metricas" -> MetricasSection(
+            1 -> ReunionesScreen(
+                viewModel = reunionesViewModel,
+                currentUserId = user.id,
+                isAdmin = isAdmin,
+                modifier = Modifier.weight(1f)
+            )
+
+            2 -> IdeasScreen(
+                viewModel = ideasViewModel,
+                currentUserId = user.id,
+                isAdmin = isAdmin,
+                onOpenIdea = onOpenIdea,
+                modifier = Modifier.weight(1f)
+            )
+
+            3 -> PlanificadorScreen(
+                viewModel = planificadorViewModel,
+                modifier = Modifier.weight(1f)
+            )
+
+            4 -> MetricasEquipoSection(
                 viewModel = canalesViewModel,
                 modifier = Modifier.weight(1f)
             )
 
-            else -> ReunionesScreen(
-                viewModel = reunionesViewModel,
-                currentUserId = currentUserId,
-                isAdmin = isAdmin,
+            else -> BuzonScreen(
+                viewModel = buzonViewModel,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -90,7 +121,7 @@ fun AgendaScreen(
 }
 
 @Composable
-private fun MetricasSection(
+fun MetricasEquipoSection(
     viewModel: CanalesViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -99,7 +130,6 @@ private fun MetricasSection(
 
     LaunchedEffect(Unit) {
         if (uiState.metricas == null) viewModel.loadMetricas()
-        if (uiState.canales.isEmpty()) viewModel.load()
     }
 
     val actuales = uiState.metricas?.actuales ?: emptyList()
@@ -128,16 +158,8 @@ private fun MetricasSection(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = modifier
             ) {
-                item {
-                    Text(
-                        text = strings.metricasTitle,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
                 items(actuales, key = { it.plataforma }) { metrica ->
-                    MetricaCard(metrica)
+                    MetricaEquipoCard(metrica)
                 }
             }
         }
@@ -145,7 +167,7 @@ private fun MetricasSection(
 }
 
 @Composable
-private fun MetricaCard(metrica: MetricaActual, modifier: Modifier = Modifier) {
+private fun MetricaEquipoCard(metrica: MetricaActual, modifier: Modifier = Modifier) {
     val meta = com.nitanmal.app.domain.model.PLATAFORMA_META[metrica.plataforma]
     val color = meta?.color?.let { androidx.compose.ui.graphics.Color(it) }
         ?: MaterialTheme.colorScheme.onSurface

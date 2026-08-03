@@ -57,4 +57,14 @@ class FanRepositoryImpl(
 
     override suspend fun enviarPregunta(contenido: String): Result<Unit> =
         call { apiService.crearPregunta(token(), contenido) }
+
+    // ── Admin ──
+    override suspend fun setLive(live: com.nitanmal.app.domain.model.LiveState): Result<com.nitanmal.app.domain.model.LiveState> =
+        call { apiService.setLive(token(), live) }
+
+    override suspend fun cerrarSorteo(id: String): Result<Unit> =
+        call { apiService.cerrarSorteo(token(), id) }
+
+    override suspend fun elegirGanador(id: String): Result<com.nitanmal.app.data.remote.Ganador?> =
+        call { apiService.elegirGanador(token(), id).ganador }
 }

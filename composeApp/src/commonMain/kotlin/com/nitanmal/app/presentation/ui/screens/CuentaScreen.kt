@@ -18,14 +18,13 @@ import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButtonVariant
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalTextField
 
-/** Cuenta (modo fan): perfil editable, plan, tema y acciones. */
+/** Cuenta / Ajustes: perfil editable, plan, tema de color y acciones. */
 @Composable
 fun CuentaScreen(
     user: User,
-    isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
+    tema: com.nitanmal.app.theme.TemaApp,
+    onTemaChange: (com.nitanmal.app.theme.TemaApp) -> Unit,
     onGuardarPerfil: (apodo: String, pais: String, region: String, telefono: String) -> Unit,
-    onSwitchToEquipo: (() -> Unit)?,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -171,7 +170,7 @@ fun CuentaScreen(
             }
         }
 
-        // Tema oscuro
+        // Tema de color (Nocturno del web / Neón del logo)
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -180,29 +179,28 @@ fun CuentaScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = strings.settingsDarkTheme,
+                        text = strings.temaTitulo,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Switch(checked = isDarkTheme, onCheckedChange = { onThemeToggle() })
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = tema == com.nitanmal.app.theme.TemaApp.WEB,
+                            onClick = { onTemaChange(com.nitanmal.app.theme.TemaApp.WEB) },
+                            label = { Text(strings.temaWeb) }
+                        )
+                        FilterChip(
+                            selected = tema == com.nitanmal.app.theme.TemaApp.NEON,
+                            onClick = { onTemaChange(com.nitanmal.app.theme.TemaApp.NEON) },
+                            label = { Text(strings.temaNeon) }
+                        )
+                    }
                 }
-            }
-        }
-
-        // Modo equipo
-        if (onSwitchToEquipo != null) {
-            item {
-                NitanmalButton(
-                    text = strings.cuentaModoEquipo,
-                    onClick = onSwitchToEquipo,
-                    modifier = Modifier.fillMaxWidth(),
-                    variant = NitanmalButtonVariant.Secondary
-                )
             }
         }
 

@@ -322,6 +322,48 @@ object AppIcons2 {
             }
         }
 
+    val Briefcase: ImageVector
+        get() = icon("Briefcase") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(20f, 6f)
+                horizontalLineToRelative(-4f)
+                verticalLineTo(4f)
+                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                horizontalLineToRelative(-4f)
+                curveToRelative(-1.1f, 0f, -2f, 0.9f, -2f, 2f)
+                verticalLineToRelative(2f)
+                horizontalLineTo(4f)
+                curveToRelative(-1.1f, 0f, -1.99f, 0.9f, -1.99f, 2f)
+                lineTo(2f, 19f)
+                curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+                horizontalLineToRelative(16f)
+                curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+                verticalLineTo(8f)
+                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                close()
+                moveTo(14f, 6f)
+                horizontalLineToRelative(-4f)
+                verticalLineTo(4f)
+                horizontalLineToRelative(4f)
+                verticalLineToRelative(2f)
+                close()
+            }
+        }
+
+    val Shield: ImageVector
+        get() = icon("Shield") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(12f, 1f)
+                lineTo(3f, 5f)
+                verticalLineToRelative(6f)
+                curveToRelative(0f, 5.55f, 3.84f, 10.74f, 9f, 12f)
+                curveToRelative(5.16f, -1.26f, 9f, -6.45f, 9f, -12f)
+                verticalLineTo(5f)
+                lineToRelative(-9f, -4f)
+                close()
+            }
+        }
+
     val Person: ImageVector
         get() = icon("Person") {
             path(fill = SolidColor(Color.Black)) {

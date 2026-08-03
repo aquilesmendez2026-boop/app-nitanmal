@@ -8,19 +8,18 @@ import com.nitanmal.app.domain.auth.LocalPlatformAuth
 import com.nitanmal.app.domain.usecase.SelectClientUseCase
 import com.nitanmal.app.domain.usecase.SignInWithGoogleUseCase
 import com.nitanmal.app.domain.usecase.SignOutUseCase
-import com.nitanmal.app.presentation.ui.screens.FanDashboardScreen
 import com.nitanmal.app.presentation.ui.screens.LoginScreen
-import com.nitanmal.app.presentation.ui.screens.MainDashboardScreen
+import com.nitanmal.app.presentation.ui.screens.RootDashboardScreen
 import com.nitanmal.app.presentation.ui.screens.SplashScreen
-import com.nitanmal.app.presentation.viewmodel.AppModo
 import com.nitanmal.app.presentation.viewmodel.AuthViewModel
 import com.nitanmal.app.theme.NitanmalTheme
+import com.nitanmal.app.theme.TemaApp
 
 @Composable
 fun App() {
-    var isDarkTheme by remember { mutableStateOf(false) }
+    var tema by remember { mutableStateOf(TemaApp.WEB) }
 
-    NitanmalTheme(darkTheme = isDarkTheme) {
+    NitanmalTheme(tema = tema) {
         ProvideLocaleManager {
             val platformAuth = LocalPlatformAuth.current
             val authRepository = remember { AuthRepositoryImpl(platformAuth) }
@@ -47,28 +46,14 @@ fun App() {
                     onClearError = { authViewModel.clearError() }
                 )
 
-                // Modo Equipo: la herramienta de trabajo del staff.
-                uiState.modo == AppModo.EQUIPO && user.esEquipo -> MainDashboardScreen(
+                else -> RootDashboardScreen(
                     user = user,
-                    isDarkTheme = isDarkTheme,
-                    onThemeToggle = { isDarkTheme = !isDarkTheme },
-                    onSignOutClick = { authViewModel.signOut() },
-                    onSwitchSessionClick = { authViewModel.switchClient() },
-                    onSwitchToFan = { authViewModel.setModo(AppModo.FAN) }
-                )
-
-                // Modo Fan: contenido del podcast para todos.
-                else -> FanDashboardScreen(
-                    user = user,
-                    isDarkTheme = isDarkTheme,
-                    onThemeToggle = { isDarkTheme = !isDarkTheme },
+                    tema = tema,
+                    onTemaChange = { tema = it },
                     onGuardarPerfil = { apodo, pais, region, telefono ->
                         authViewModel.updateProfile(apodo, pais, region, telefono)
                     },
-                    onSignOutClick = { authViewModel.signOut() },
-                    onSwitchToEquipo = if (user.esEquipo) {
-                        { authViewModel.setModo(AppModo.EQUIPO) }
-                    } else null
+                    onSignOutClick = { authViewModel.signOut() }
                 )
             }
         }

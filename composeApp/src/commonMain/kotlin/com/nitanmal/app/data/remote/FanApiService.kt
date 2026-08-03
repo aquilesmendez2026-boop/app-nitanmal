@@ -61,7 +61,18 @@ interface IFanApiService {
 
     /** Buzón del público: cualquier usuario con sesión puede enviar. */
     suspend fun crearPregunta(token: String, contenido: String)
+
+    // Admin
+    suspend fun setLive(token: String, live: LiveState): LiveState
+    suspend fun cerrarSorteo(token: String, id: String)
+    suspend fun elegirGanador(token: String, id: String): GanadorResponse
 }
+
+@Serializable
+data class Ganador(val nombre: String = "", val email: String = "")
+
+@Serializable
+data class GanadorResponse(val ganador: Ganador? = null, val error: String? = null)
 
 @Serializable
 data class PreguntaFanInput(val contenido: String)
@@ -140,4 +151,14 @@ class FanApiService : IFanApiService {
 
     override suspend fun crearPregunta(token: String, contenido: String) =
         request<Unit>(HttpMethod.Post, "/preguntas", token, PreguntaFanInput(contenido))
+
+    // ── Admin ──
+    override suspend fun setLive(token: String, live: LiveState): LiveState =
+        request<LiveResponse>(HttpMethod.Put, "/live", token, live).live ?: live
+
+    override suspend fun cerrarSorteo(token: String, id: String) =
+        request<Unit>(HttpMethod.Post, "/zona", token, zonaBody("sorteo_cerrar", "id" to id))
+
+    override suspend fun elegirGanador(token: String, id: String): GanadorResponse =
+        request(HttpMethod.Post, "/zona", token, zonaBody("sorteo_ganador", "id" to id))
 }
