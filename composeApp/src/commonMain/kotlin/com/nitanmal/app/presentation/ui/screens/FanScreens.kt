@@ -37,13 +37,14 @@ private fun youtubeUrl(videoId: String) = "https://www.youtube.com/watch?v=$vide
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InicioFanScreen(
-    user: User,
+    user: User?,
     fanViewModel: FanViewModel,
     canalesViewModel: CanalesViewModel,
     onGoToEnVivo: () -> Unit,
     onGoToEpisodios: () -> Unit,
     onOpenEpisodio: (String) -> Unit,
     onSwitchToEquipo: (() -> Unit)?,
+    onLoginClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
@@ -73,12 +74,27 @@ fun InicioFanScreen(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "¡Hola, ${user.apodo?.takeIf { it.isNotBlank() } ?: user.name.split(" ").firstOrNull() ?: ""}!",
+                            text = if (user != null) {
+                                "¡Hola, ${user.apodo?.takeIf { it.isNotBlank() } ?: user.name.split(" ").firstOrNull() ?: ""}!"
+                            } else {
+                                "El podcast sin filtro"
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (onSwitchToEquipo != null) {
+                    if (user == null && onLoginClick != null) {
+                        // Botón de login para visitantes (arriba a la derecha)
+                        Button(
+                            onClick = onLoginClick,
+                            shape = RoundedCornerShape(999.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text(strings.fanEntrar, fontWeight = FontWeight.Bold)
+                        }
+                    } else if (onSwitchToEquipo != null) {
                         TextButton(onClick = onSwitchToEquipo) {
                             Text(
                                 text = strings.cuentaModoEquipo,
@@ -217,7 +233,7 @@ fun InicioFanScreen(
                 items(uiState.recientes, key = { it.id }) { episodio ->
                     EpisodioCardFan(
                         episodio = episodio,
-                        esPremiumUsuario = user.esPremium,
+                        esPremiumUsuario = user?.esPremium == true,
                         onClick = { onOpenEpisodio(episodio.id) }
                     )
                 }
@@ -269,7 +285,11 @@ fun InicioFanScreen(
                         Spacer(Modifier.height(12.dp))
                         NitanmalButton(
                             text = strings.fanEnviar,
-                            onClick = { fanViewModel.setShowPreguntaSheet(true) },
+                            onClick = {
+                                // El buzón requiere sesión: los visitantes van al login.
+                                if (user == null) onLoginClick?.invoke()
+                                else fanViewModel.setShowPreguntaSheet(true)
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }

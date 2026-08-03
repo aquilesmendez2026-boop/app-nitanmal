@@ -16,9 +16,20 @@ fun LoginScreen(
     uiState: AuthUiState,
     onGoogleSignInClick: () -> Unit,
     onClearError: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
+        if (onBack != null) {
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 40.dp, start = 8.dp)
+            ) {
+                Text("← Volver")
+            }
+        }
         LoginSection(
             name = "",
             email = "",

@@ -18,6 +18,9 @@ import com.nitanmal.app.theme.TemaApp
 @Composable
 fun App() {
     var tema by remember { mutableStateOf(TemaApp.WEB) }
+    // El login es una pantalla a la que se ENTRA desde la portada pública,
+    // no una barrera: los visitantes navegan el contenido sin sesión.
+    var showLogin by remember { mutableStateOf(false) }
 
     NitanmalTheme(tema = tema) {
         ProvideLocaleManager {
@@ -37,13 +40,17 @@ fun App() {
             LaunchedEffect(Unit) { authViewModel.tryRestoreSession() }
 
             val user = uiState.currentUser
+            // Al completar el login, volvemos al shell.
+            LaunchedEffect(user) { if (user != null) showLogin = false }
+
             when {
                 uiState.isRestoring -> SplashScreen()
 
-                user == null -> LoginScreen(
+                user == null && showLogin -> LoginScreen(
                     uiState = uiState,
                     onGoogleSignInClick = { authViewModel.signInWithGoogle() },
-                    onClearError = { authViewModel.clearError() }
+                    onClearError = { authViewModel.clearError() },
+                    onBack = { showLogin = false }
                 )
 
                 else -> RootDashboardScreen(
@@ -53,7 +60,8 @@ fun App() {
                     onGuardarPerfil = { apodo, pais, region, telefono ->
                         authViewModel.updateProfile(apodo, pais, region, telefono)
                     },
-                    onSignOutClick = { authViewModel.signOut() }
+                    onSignOutClick = { authViewModel.signOut() },
+                    onLoginClick = { showLogin = true }
                 )
             }
         }

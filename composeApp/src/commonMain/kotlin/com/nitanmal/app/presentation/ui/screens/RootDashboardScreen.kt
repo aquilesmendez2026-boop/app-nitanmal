@@ -29,23 +29,26 @@ import com.nitanmal.app.theme.TemaApp
 private data class TabDef(
     val label: String,
     val icon: ImageVector,
-    val route: Any,
+    /** null = no navega: dispara onLoginClick (pestaña "Entrar"). */
+    val route: Any?,
     val matches: (String?) -> Boolean
 )
 
 /**
  * Shell único con navbar por rol (el rol agrega pestañas, nunca reordena):
- * - miembro:       Inicio · Miembro · Ajustes
+ * - anónimo:       Inicio · Episodios · Entrar
+ * - miembro:       Inicio · Mi Zona · Ajustes
  * - participante:  Inicio · Trabajo · Agenda · Ajustes
  * - admin+:        Inicio · Trabajo · Agenda · Admin · Ajustes
  */
 @Composable
 fun RootDashboardScreen(
-    user: User,
+    user: User?,
     tema: TemaApp,
     onTemaChange: (TemaApp) -> Unit,
     onGuardarPerfil: (String, String, String, String) -> Unit,
     onSignOutClick: () -> Unit,
+    onLoginClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
@@ -65,18 +68,26 @@ fun RootDashboardScreen(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val isAdmin = user.role == "admin" || user.role == "superadmin"
+    val isAdmin = user?.role == "admin" || user?.role == "superadmin"
 
     fun ruta(r: kotlin.reflect.KClass<*>): String? = r.qualifiedName
 
-    val tabs = remember(user.role) {
+    val tabs = remember(user?.role) {
         buildList {
             add(TabDef(strings.fanNavInicio, AppIcons.Home, FanInicioRoute) { r ->
                 r == ruta(FanInicioRoute::class) ||
                     r == ruta(EnVivoRoute::class) ||
-                    r == ruta(EpisodiosFanRoute::class) ||
+                    (user != null && r == ruta(EpisodiosFanRoute::class)) ||
                     (ruta(EpisodioFanDetailRoute::class)?.let { r?.startsWith(it) } == true)
             })
+            if (user == null) {
+                // Visitante: portada + episodios + entrar
+                add(TabDef(strings.fanNavEpisodios, AppIcons2.Movie, EpisodiosFanRoute) { r ->
+                    r == ruta(EpisodiosFanRoute::class)
+                })
+                add(TabDef(strings.fanEntrar, AppIcons2.Person, null) { false })
+                return@buildList
+            }
             if (!user.esEquipo) {
                 add(TabDef(strings.fanNavMiZona, AppIcons.Star, MiZonaRoute) { r ->
                     r == ruta(MiZonaRoute::class)
@@ -129,7 +140,9 @@ fun RootDashboardScreen(
                             label = { Text(tab.label) },
                             selected = selected,
                             onClick = {
-                                navController.navigate(tab.route) { launchSingleTop = true }
+                                val route = tab.route
+                                if (route == null) onLoginClick()
+                                else navController.navigate(route) { launchSingleTop = true }
                             },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = if (rojo) Color(0xFFdc2626) else MaterialTheme.colorScheme.primary,
@@ -169,14 +182,15 @@ fun RootDashboardScreen(
                             navController.navigate(EpisodiosFanRoute) { launchSingleTop = true }
                             navController.navigate(EpisodioFanDetailRoute(id))
                         },
-                        onSwitchToEquipo = null
+                        onSwitchToEquipo = null,
+                        onLoginClick = if (user == null) onLoginClick else null
                     )
                 }
                 composable<EnVivoRoute> { EnVivoScreen(fanViewModel = fanViewModel) }
                 composable<EpisodiosFanRoute> {
                     EpisodiosFanScreen(
                         fanViewModel = fanViewModel,
-                        esPremiumUsuario = user.esPremium,
+                        esPremiumUsuario = user?.esPremium == true,
                         onOpenEpisodio = { id -> navController.navigate(EpisodioFanDetailRoute(id)) }
                     )
                 }
@@ -185,73 +199,76 @@ fun RootDashboardScreen(
                     EpisodioFanDetailScreen(
                         episodioId = route.episodioId,
                         fanViewModel = fanViewModel,
-                        esPremiumUsuario = user.esPremium,
-                        onNavigateBack = { navController.popBackStack() }
-                    )
-                }
-                composable<MiZonaRoute> {
-                    MiZonaScreen(viewModel = miZonaViewModel, esPremiumUsuario = user.esPremium)
-                }
-
-                // ── Equipo ──
-                composable<TrabajoRoute> {
-                    MiTrabajoScreen(
-                        user = user,
-                        produccionViewModel = produccionViewModel,
-                        ideasViewModel = ideasViewModel,
-                        planificadorViewModel = planificadorViewModel,
-                        onOpenEpisodio = { id -> navController.navigate(EpisodioDetailRoute(id)) },
-                        onOpenIdea = { id -> navController.navigate(IdeaDetailRoute(id)) },
-                        onGoToPlanner = {
-                            navController.navigate(AgendaEquipoRoute) { launchSingleTop = true }
-                        }
-                    )
-                }
-                composable<AgendaEquipoRoute> {
-                    AgendaEquipoScreen(
-                        user = user,
-                        isAdmin = isAdmin,
-                        produccionViewModel = produccionViewModel,
-                        reunionesViewModel = reunionesViewModel,
-                        ideasViewModel = ideasViewModel,
-                        planificadorViewModel = planificadorViewModel,
-                        canalesViewModel = canalesViewModel,
-                        buzonViewModel = buzonViewModel,
-                        onOpenEpisodio = { id -> navController.navigate(EpisodioDetailRoute(id)) },
-                        onOpenIdea = { id -> navController.navigate(IdeaDetailRoute(id)) }
-                    )
-                }
-                composable<IdeaDetailRoute> { backStackEntry ->
-                    val route = backStackEntry.toRoute<IdeaDetailRoute>()
-                    IdeaDetailScreen(
-                        notaId = route.notaId,
-                        viewModel = ideasViewModel,
-                        currentUserId = user.id,
-                        isAdmin = isAdmin,
-                        onNavigateBack = { navController.popBackStack() }
-                    )
-                }
-                composable<EpisodioDetailRoute> { backStackEntry ->
-                    val route = backStackEntry.toRoute<EpisodioDetailRoute>()
-                    EpisodioDetailScreen(
-                        episodioId = route.episodioId,
-                        viewModel = produccionViewModel,
+                        esPremiumUsuario = user?.esPremium == true,
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
 
-                // ── Admin ──
-                composable<AdminRoute> { AdminScreen(viewModel = adminViewModel) }
+                if (user != null) {
+                    composable<MiZonaRoute> {
+                        MiZonaScreen(viewModel = miZonaViewModel, esPremiumUsuario = user.esPremium)
+                    }
 
-                // ── Ajustes ──
-                composable<CuentaRoute> {
-                    CuentaScreen(
-                        user = user,
-                        tema = tema,
-                        onTemaChange = onTemaChange,
-                        onGuardarPerfil = onGuardarPerfil,
-                        onSignOutClick = onSignOutClick
-                    )
+                    // ── Equipo ──
+                    composable<TrabajoRoute> {
+                        MiTrabajoScreen(
+                            user = user,
+                            produccionViewModel = produccionViewModel,
+                            ideasViewModel = ideasViewModel,
+                            planificadorViewModel = planificadorViewModel,
+                            onOpenEpisodio = { id -> navController.navigate(EpisodioDetailRoute(id)) },
+                            onOpenIdea = { id -> navController.navigate(IdeaDetailRoute(id)) },
+                            onGoToPlanner = {
+                                navController.navigate(AgendaEquipoRoute) { launchSingleTop = true }
+                            }
+                        )
+                    }
+                    composable<AgendaEquipoRoute> {
+                        AgendaEquipoScreen(
+                            user = user,
+                            isAdmin = isAdmin,
+                            produccionViewModel = produccionViewModel,
+                            reunionesViewModel = reunionesViewModel,
+                            ideasViewModel = ideasViewModel,
+                            planificadorViewModel = planificadorViewModel,
+                            canalesViewModel = canalesViewModel,
+                            buzonViewModel = buzonViewModel,
+                            onOpenEpisodio = { id -> navController.navigate(EpisodioDetailRoute(id)) },
+                            onOpenIdea = { id -> navController.navigate(IdeaDetailRoute(id)) }
+                        )
+                    }
+                    composable<IdeaDetailRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<IdeaDetailRoute>()
+                        IdeaDetailScreen(
+                            notaId = route.notaId,
+                            viewModel = ideasViewModel,
+                            currentUserId = user.id,
+                            isAdmin = isAdmin,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable<EpisodioDetailRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<EpisodioDetailRoute>()
+                        EpisodioDetailScreen(
+                            episodioId = route.episodioId,
+                            viewModel = produccionViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // ── Admin ──
+                    composable<AdminRoute> { AdminScreen(viewModel = adminViewModel) }
+
+                    // ── Ajustes ──
+                    composable<CuentaRoute> {
+                        CuentaScreen(
+                            user = user,
+                            tema = tema,
+                            onTemaChange = onTemaChange,
+                            onGuardarPerfil = onGuardarPerfil,
+                            onSignOutClick = onSignOutClick
+                        )
+                    }
                 }
             }
         }
