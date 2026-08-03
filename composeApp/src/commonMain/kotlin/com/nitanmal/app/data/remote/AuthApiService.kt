@@ -6,6 +6,19 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+
+/** PUT /me: solo apodo/pais/region/telefono (PROFILE_FIELDS del backend). */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class ProfileUpdateInput(
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val apodo: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val pais: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val region: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val telefono: String? = null
+)
 
 class AuthApiService : IAuthApiService {
     private val client = ApiClient.httpClient
@@ -19,6 +32,26 @@ class AuthApiService : IAuthApiService {
             }
             val bodyText = response.bodyAsText()
             Logger.d("AuthApi", "RESPONSE ${response.status.value} ${response.status.description}: $bodyText")
+            if (!response.status.isSuccess()) {
+                throw RuntimeException("HTTP ${response.status.value}: $bodyText")
+            }
+            response.body()
+        } catch (e: Exception) {
+            Logger.d("AuthApi", "EXCEPTION: ${e::class.simpleName}: ${e.message}")
+            throw e.toNetworkException()
+        }
+    }
+
+    override suspend fun updateMe(firebaseIdToken: String, input: ProfileUpdateInput): MeResponse {
+        val url = "${AuthConfig.API_URL}/me"
+        Logger.d("AuthApi", "PUT $url")
+        return try {
+            val response = client.put(url) {
+                header(HttpHeaders.Authorization, "Bearer $firebaseIdToken")
+                setBody(input)
+            }
+            val bodyText = response.bodyAsText()
+            Logger.d("AuthApi", "RESPONSE ${response.status.value}: ${bodyText.take(200)}")
             if (!response.status.isSuccess()) {
                 throw RuntimeException("HTTP ${response.status.value}: $bodyText")
             }

@@ -13,6 +13,71 @@ class AuthRepositoryImpl(
 ) : AuthRepository {
     private var currentUser: User? = null
 
+    private fun profileToUser(
+        profile: com.nitanmal.app.data.remote.model.ProfileDto,
+        fallbackId: String = "",
+        fallbackName: String = "",
+        fallbackEmail: String = "",
+        fallbackPhoto: String? = null
+    ): User = User(
+        id = profile.userId ?: fallbackId,
+        name = profile.name?.takeIf { it.isNotBlank() } ?: fallbackName,
+        email = profile.email ?: fallbackEmail,
+        photoUrl = profile.photoURL ?: fallbackPhoto,
+        isAuthenticated = true,
+        role = profile.role,
+        plan = profile.plan,
+        apodo = profile.apodo,
+        pais = profile.pais,
+        region = profile.region,
+        telefono = profile.telefono
+    )
+
+    override suspend fun restoreSession(): User? {
+        val cached = platformAuth.getCachedUser() ?: return null
+        val token = platformAuth.getFirebaseIdToken() ?: return null
+        return try {
+            val profile = apiService.getMe(token).user ?: return null
+            profileToUser(
+                profile,
+                fallbackId = cached.userId,
+                fallbackName = cached.displayName ?: "",
+                fallbackEmail = cached.email,
+                fallbackPhoto = cached.photoUrl
+            ).also { currentUser = it }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override suspend fun updateProfile(
+        apodo: String?,
+        pais: String?,
+        region: String?,
+        telefono: String?
+    ): Result<User> = try {
+        val token = platformAuth.getFirebaseIdToken()
+            ?: throw IllegalStateException("No hay sesión activa")
+        val profile = apiService.updateMe(
+            token,
+            com.nitanmal.app.data.remote.ProfileUpdateInput(
+                apodo = apodo, pais = pais, region = region, telefono = telefono
+            )
+        ).user ?: throw IllegalStateException("El backend no devolvió el perfil")
+        val previo = currentUser
+        val user = profileToUser(
+            profile,
+            fallbackId = previo?.id ?: "",
+            fallbackName = previo?.name ?: "",
+            fallbackEmail = previo?.email ?: "",
+            fallbackPhoto = previo?.photoUrl
+        )
+        currentUser = user
+        Result.success(user)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     override suspend fun signInWithGoogle(): Result<User> {
         return try {
             // 1. Google Sign-In + Firebase Auth
@@ -42,16 +107,13 @@ class AuthRepositoryImpl(
                     Exception(meResponse.error ?: "El backend no devolvió el perfil")
                 )
 
-            val user = User(
-                id = profile.userId ?: signInResult.userId,
-                name = profile.name?.takeIf { it.isNotBlank() }
-                    ?: signInResult.displayName ?: "",
-                email = profile.email ?: signInResult.email,
+            val user = profileToUser(
+                profile,
+                fallbackId = signInResult.userId,
+                fallbackName = signInResult.displayName ?: "",
+                fallbackEmail = signInResult.email,
                 // Preferimos la foto subida al backend; si no hay, la de Google.
-                photoUrl = profile.photoURL ?: signInResult.photoUrl,
-                isAuthenticated = true,
-                role = profile.role,
-                plan = profile.plan
+                fallbackPhoto = signInResult.photoUrl
             )
             currentUser = user
             Result.success(user)

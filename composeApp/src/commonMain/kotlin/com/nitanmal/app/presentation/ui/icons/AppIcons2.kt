@@ -322,6 +322,52 @@ object AppIcons2 {
             }
         }
 
+    val Person: ImageVector
+        get() = icon("Person") {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(12f, 12f)
+                curveToRelative(2.21f, 0f, 4f, -1.79f, 4f, -4f)
+                reflectiveCurveToRelative(-1.79f, -4f, -4f, -4f)
+                reflectiveCurveToRelative(-4f, 1.79f, -4f, 4f)
+                reflectiveCurveToRelative(1.79f, 4f, 4f, 4f)
+                close()
+                moveTo(12f, 14f)
+                curveToRelative(-2.67f, 0f, -8f, 1.34f, -8f, 4f)
+                verticalLineToRelative(2f)
+                horizontalLineToRelative(16f)
+                verticalLineToRelative(-2f)
+                curveToRelative(0f, -2.66f, -5.33f, -4f, -8f, -4f)
+                close()
+            }
+        }
+
+    /** Punto de transmisión (EN VIVO): círculo con anillo. */
+    val Live: ImageVector
+        get() = icon("Live") {
+            path(fill = SolidColor(Color.Black)) {
+                // anillo exterior
+                moveTo(12f, 4f)
+                curveToRelative(-4.42f, 0f, -8f, 3.58f, -8f, 8f)
+                reflectiveCurveToRelative(3.58f, 8f, 8f, 8f)
+                reflectiveCurveToRelative(8f, -3.58f, 8f, -8f)
+                reflectiveCurveToRelative(-3.58f, -8f, -8f, -8f)
+                close()
+                moveTo(12f, 18f)
+                curveToRelative(-3.31f, 0f, -6f, -2.69f, -6f, -6f)
+                reflectiveCurveToRelative(2.69f, -6f, 6f, -6f)
+                reflectiveCurveToRelative(6f, 2.69f, 6f, 6f)
+                reflectiveCurveToRelative(-2.69f, 6f, -6f, 6f)
+                close()
+                // punto central
+                moveTo(12f, 8.5f)
+                curveToRelative(-1.93f, 0f, -3.5f, 1.57f, -3.5f, 3.5f)
+                reflectiveCurveToRelative(1.57f, 3.5f, 3.5f, 3.5f)
+                reflectiveCurveToRelative(3.5f, -1.57f, 3.5f, -3.5f)
+                reflectiveCurveTo(13.93f, 8.5f, 12f, 8.5f)
+                close()
+            }
+        }
+
     val Edit: ImageVector
         get() = icon("Edit") {
             path(fill = SolidColor(Color.Black)) {

@@ -42,6 +42,7 @@ fun MainDashboardScreen(
     onThemeToggle: () -> Unit,
     onSignOutClick: () -> Unit,
     onSwitchSessionClick: () -> Unit,
+    onSwitchToFan: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -92,6 +93,7 @@ fun MainDashboardScreen(
                         produccionViewModel = produccionViewModel,
                         reunionesViewModel = reunionesViewModel,
                         canalesViewModel = canalesViewModel,
+                        onSwitchToFan = onSwitchToFan,
                         onGoToIdeas = {
                             navController.navigate(IdeasRoute) { launchSingleTop = true }
                         },

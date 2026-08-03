@@ -107,6 +107,16 @@ class AndroidPlatformAuth(
         }
     }
 
+    override fun getCachedUser(): com.nitanmal.app.domain.auth.CachedUserInfo? {
+        val u = firebaseAuth.currentUser ?: return null
+        return com.nitanmal.app.domain.auth.CachedUserInfo(
+            userId = u.uid,
+            email = u.email ?: "",
+            displayName = u.displayName,
+            photoUrl = u.photoUrl?.toString()
+        )
+    }
+
     override suspend fun signOut() {
         try {
             firebaseAuth.signOut()
