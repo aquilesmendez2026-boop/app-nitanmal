@@ -71,15 +71,6 @@ fun IdeasScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
-                        Text(
-                            text = strings.ideasTitle,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                    }
                     items(uiState.ordenadas, key = { it.id }) { nota ->
                         NotaCard(
                             nota = nota,

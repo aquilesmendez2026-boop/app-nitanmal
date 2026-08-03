@@ -58,13 +58,7 @@ fun PlanificadorScreen(
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp, bottom = 8.dp)
             ) {
-                Text(
-                    text = strings.planTitle,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f)
-                )
+                Spacer(Modifier.weight(1f))
                 // Generar con IA
                 Surface(
                     shape = RoundedCornerShape(12.dp),

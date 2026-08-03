@@ -43,7 +43,6 @@ fun ReunionesScreen(
 
             uiState.reuniones.isEmpty() -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    Titulo(strings.reuTitle)
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(
                             text = strings.reuVacio,
@@ -60,8 +59,6 @@ fun ReunionesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    item { Titulo(strings.reuTitle) }
-
                     if (uiState.proximas.isNotEmpty()) {
                         item { Seccion(strings.reuProximas) }
                         items(uiState.proximas, key = { it.id }) { reunion ->
@@ -119,17 +116,6 @@ fun ReunionesScreen(
             }
         )
     }
-}
-
-@Composable
-private fun Titulo(texto: String) {
-    Text(
-        text = texto,
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
-    )
 }
 
 @Composable

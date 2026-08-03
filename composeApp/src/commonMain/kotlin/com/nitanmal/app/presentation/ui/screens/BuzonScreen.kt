@@ -31,30 +31,6 @@ fun BuzonScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 8.dp)
-            ) {
-                Text(
-                    text = strings.buzonTitle,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                if (uiState.pendientes > 0) {
-                    Spacer(Modifier.width(10.dp))
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ) {
-                        Text("${uiState.pendientes}")
-                    }
-                }
-            }
-
             // Filtros
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
