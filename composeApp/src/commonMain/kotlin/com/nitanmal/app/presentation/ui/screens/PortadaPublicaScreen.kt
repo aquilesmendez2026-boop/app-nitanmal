@@ -27,7 +27,9 @@ import com.nitanmal.app.core.localization.rememberStrings
 import com.nitanmal.app.data.repository.FanRepositoryImpl
 import com.nitanmal.app.data.repository.TeamRepositoryImpl
 import com.nitanmal.app.domain.auth.LocalPlatformAuth
+import com.nitanmal.app.presentation.ui.components.atoms.FondoNocturno
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton
+import com.nitanmal.app.presentation.ui.components.atoms.glass
 import com.nitanmal.app.presentation.ui.components.molecules.CanalCard
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
 import com.nitanmal.app.presentation.viewmodel.CanalesViewModel
@@ -96,12 +98,8 @@ fun PortadaPublicaScreen(
 
     var detalle by remember { mutableStateOf<DetallePortada?>(null) }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-    ) {
+    FondoNocturno(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
         when (val d = detalle) {
             null -> PortadaHome(
                 fanViewModel = fanViewModel,
@@ -146,11 +144,7 @@ fun PortadaPublicaScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth().glass(20.dp)) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(text = "🎁", style = MaterialTheme.typography.headlineMedium)
                             Spacer(Modifier.height(8.dp))
@@ -197,10 +191,8 @@ fun PortadaPublicaScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 BENEFICIOS_PORTADA.forEach { beneficio ->
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).glass(14.dp)
                     ) {
                         Text(
                             text = beneficio,
@@ -267,10 +259,8 @@ fun PortadaPublicaScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 FORMATOS_PORTADA.forEach { formato ->
-                    Card(
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).glass(18.dp)
                     ) {
                         Column(modifier = Modifier.padding(18.dp)) {
                             Surface(
@@ -367,6 +357,7 @@ fun PortadaPublicaScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
         }
     }
 }
@@ -617,14 +608,11 @@ private fun CardPortada(
     accent: Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 14.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .glass(22.dp)
             .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -758,8 +746,8 @@ private fun ValoresChips(modifier: Modifier = Modifier) {
 private fun ValorChip(valor: String) {
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f))
     ) {
         Text(
             text = valor,

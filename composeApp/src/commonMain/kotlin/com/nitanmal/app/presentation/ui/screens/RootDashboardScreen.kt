@@ -149,11 +149,12 @@ fun RootDashboardScreen(
         },
         modifier = modifier
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+        com.nitanmal.app.presentation.ui.components.atoms.FondoNocturno {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
             NavHost(
                 navController = navController,
                 startDestination = FanInicioRoute
@@ -265,6 +266,7 @@ fun RootDashboardScreen(
                             onSignOutClick = onSignOutClick
                         )
                     }
+            }
             }
         }
     }

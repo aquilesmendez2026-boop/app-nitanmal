@@ -27,6 +27,7 @@ import com.nitanmal.app.domain.model.Evento
 import com.nitanmal.app.domain.model.Plantillas
 import com.nitanmal.app.domain.model.User
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton
+import com.nitanmal.app.presentation.ui.components.atoms.glass
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalTextField
 import com.nitanmal.app.presentation.ui.components.molecules.CanalCard
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
@@ -191,13 +192,10 @@ fun InicioFanScreen(
                     }
                 } else {
                     val proximo = uiState.proximoEvento
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
+                            .glass(20.dp)
                             .clickable(onClick = onGoToEnVivo)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
@@ -435,13 +433,10 @@ private fun ResumenCard(
     accent: Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .glass(18.dp)
             .clickable(onClick = onClick)
     ) {
         Row(
@@ -637,11 +632,7 @@ fun EnVivoScreen(
 
 @Composable
 internal fun EventoCard(evento: Evento, modifier: Modifier = Modifier) {
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = modifier.fillMaxWidth()
-    ) {
+    Column(modifier = modifier.fillMaxWidth().glass(14.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(14.dp)
@@ -745,13 +736,10 @@ fun EpisodioCardFan(
     val strings = rememberStrings()
     val bloqueado = episodio.premium && !esPremiumUsuario
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .glass(16.dp)
             .clickable(onClick = onClick)
     ) {
         Row(

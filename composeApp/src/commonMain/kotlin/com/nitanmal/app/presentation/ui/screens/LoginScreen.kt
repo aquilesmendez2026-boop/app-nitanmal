@@ -19,7 +19,8 @@ fun LoginScreen(
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
+    com.nitanmal.app.presentation.ui.components.atoms.FondoNocturno(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize()) {
         if (onBack != null) {
             TextButton(
                 onClick = onBack,
@@ -56,4 +57,5 @@ fun LoginScreen(
             }
         }
     }
+}
 }
