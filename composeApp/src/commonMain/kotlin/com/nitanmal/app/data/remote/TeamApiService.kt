@@ -100,7 +100,8 @@ class TeamApiService : ITeamApiService {
         return try {
             val response = client.request(url) {
                 this.method = method
-                header(HttpHeaders.Authorization, "Bearer $token")
+                // Rutas públicas (p. ej. /socials) se piden sin token cuando no hay sesión.
+                if (token.isNotBlank()) header(HttpHeaders.Authorization, "Bearer $token")
                 if (body != null) setBody(body)
             }
             val bodyText = response.bodyAsText()

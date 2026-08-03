@@ -135,7 +135,13 @@ class TeamRepositoryImpl(
 
     // ── Canales y métricas ──
     override suspend fun listSocials(): Result<List<Canal>> =
-        call { apiService.listSocials(it).canales }
+        try {
+            // /socials es ruta pública: si no hay sesión se pide sin token.
+            val token = platformAuth.getFirebaseIdToken() ?: ""
+            Result.success(apiService.listSocials(token).canales)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
 
     override suspend fun getMetricas(): Result<Metricas> =
         call { apiService.getMetricas(it) }

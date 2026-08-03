@@ -236,7 +236,7 @@ private val SpanishStrings = AppStrings(
     navMetricas = "Métricas",
     navSettings = "Ajustes",
 
-    appName = "Nitanmal",
+    appName = "Ni Tan Mal",
     loginTitle = "Iniciar Sesión",
     loginName = "Nombre",
     loginEmail = "Correo electrónico",
@@ -436,7 +436,7 @@ private val EnglishStrings = AppStrings(
     navMetricas = "Metrics",
     navSettings = "Settings",
 
-    appName = "Nitanmal",
+    appName = "Ni Tan Mal",
     loginTitle = "Sign In",
     loginName = "Name",
     loginEmail = "Email",
