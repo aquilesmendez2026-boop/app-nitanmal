@@ -146,7 +146,10 @@ private fun MetricasSection(
 
 @Composable
 private fun MetricaCard(metrica: MetricaActual, modifier: Modifier = Modifier) {
-    val strings = rememberStrings()
+    val meta = com.nitanmal.app.domain.model.PLATAFORMA_META[metrica.plataforma]
+    val color = meta?.color?.let { androidx.compose.ui.graphics.Color(it) }
+        ?: MaterialTheme.colorScheme.onSurface
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -157,15 +160,22 @@ private fun MetricaCard(metrica: MetricaActual, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(16.dp)
         ) {
+            Surface(
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = color,
+                modifier = Modifier.size(10.dp)
+            ) {}
+            Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = plataformaLabel(metrica.plataforma),
+                    text = meta?.label ?: plataformaLabel(metrica.plataforma),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${metrica.seguidores} ${strings.metricasSeguidores}",
+                    text = "${com.nitanmal.app.domain.model.fmtSeguidores(metrica.seguidores.toString())} " +
+                        (meta?.noun ?: rememberStrings().metricasSeguidores),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
