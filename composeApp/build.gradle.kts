@@ -123,9 +123,22 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        // Credenciales en local.properties (no se comitean).
+        val ksFile = localProperties["KEYSTORE_FILE"]?.toString()
+        if (ksFile != null && file(ksFile).exists()) {
+            create("release") {
+                storeFile = file(ksFile)
+                storePassword = localProperties["KEYSTORE_PASSWORD"]?.toString()
+                keyAlias = localProperties["KEY_ALIAS"]?.toString()
+                keyPassword = localProperties["KEY_PASSWORD"]?.toString()
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {
