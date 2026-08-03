@@ -19,6 +19,7 @@ import com.nitanmal.app.core.util.formatFecha
 import com.nitanmal.app.domain.model.Episodio
 import com.nitanmal.app.domain.model.Plantillas
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalButton
+import com.nitanmal.app.presentation.ui.components.atoms.glass
 import com.nitanmal.app.presentation.ui.components.atoms.NitanmalTextField
 import com.nitanmal.app.presentation.ui.icons.AppIcons2
 import com.nitanmal.app.presentation.viewmodel.ProduccionViewModel
@@ -83,11 +84,12 @@ fun ProduccionScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     item {
+                        val enCurso = uiState.episodios.count { it.aprobadas < Plantillas.STAGES.size }
                         Text(
-                            text = strings.prodTitle,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            text = if (enCurso == 1) "1 episodio en el pipeline"
+                            else "$enCurso episodios en el pipeline",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                     }
@@ -142,16 +144,17 @@ private fun EpisodioCard(
     val strings = rememberStrings()
     var confirmDelete by remember { mutableStateOf(false) }
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    val completo = episodio.aprobadas == Plantillas.STAGES.size
+    // Primera etapa sin aprobar: es "donde va" el episodio.
+    val etapaActual = Plantillas.STAGES.firstOrNull { episodio.etapa(it).estado != "aprobada" }
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .glass(18.dp)
             .clickable(onClick = onClick)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = episodio.titulo,
@@ -160,16 +163,20 @@ private fun EpisodioCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = "${episodio.aprobadas}/${Plantillas.STAGES.size}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = if (episodio.aprobadas == Plantillas.STAGES.size) {
-                        MaterialTheme.colorScheme.tertiary
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    }
-                )
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = (if (completo) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.primary).copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "${episodio.aprobadas}/${Plantillas.STAGES.size} etapas",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (completo) MaterialTheme.colorScheme.tertiary
+                        else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
                 if (puedeBorrar) {
                     Spacer(Modifier.width(4.dp))
                     IconButton(onClick = { confirmDelete = true }, modifier = Modifier.size(32.dp)) {
@@ -183,45 +190,65 @@ private fun EpisodioCard(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             // Pipeline de etapas
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Plantillas.STAGES.forEach { stage ->
                     val color = estadoEtapaColor(episodio.etapa(stage).estado)
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
                             .background(color)
                     )
                 }
             }
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Row {
-                Plantillas.STAGES.forEach { stage ->
+            // Etapa actual, en una sola línea amistosa
+            if (etapaActual == null) {
+                Text(
+                    text = "✅ Publicado — pipeline completo",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            } else {
+                val estado = episodio.etapa(etapaActual).estado
+                val colorEtapa = if (estado == null || estado == "pendiente")
+                    MaterialTheme.colorScheme.primary
+                else estadoEtapaColor(estado)
+                val prefijo = when (estado) {
+                    "en_progreso" -> "En curso"
+                    "en_revision" -> "En revisión"
+                    else -> "Siguiente"
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = colorEtapa.copy(alpha = 0.12f)
+                ) {
                     Text(
-                        text = Plantillas.LABELS[stage] ?: stage,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = estadoEtapaColor(episodio.etapa(stage).estado),
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f)
+                        text = "$prefijo: ${Plantillas.LABELS[etapaActual] ?: etapaActual}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colorEtapa,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = listOfNotNull(
-                    episodio.createdByName?.takeIf { it.isNotBlank() },
-                    formatFecha(episodio.createdAt).takeIf { it.isNotBlank() }
-                ).joinToString(" · "),
+                    episodio.createdByName?.takeIf { it.isNotBlank() }?.let { "👤 $it" },
+                    formatFecha(episodio.createdAt).takeIf { it.isNotBlank() }?.let { "📅 $it" }
+                ).joinToString("   "),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         }
     }

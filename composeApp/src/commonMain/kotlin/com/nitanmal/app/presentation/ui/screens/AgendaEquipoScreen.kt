@@ -1,13 +1,18 @@
 package com.nitanmal.app.presentation.ui.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nitanmal.app.core.localization.rememberStrings
@@ -43,38 +48,47 @@ fun AgendaEquipoScreen(
     val buzonState by buzonViewModel.uiState.collectAsState()
 
     val tabs = listOf(
-        strings.navProduccion,
-        strings.navReuniones,
-        strings.navIdeas,
-        strings.navPlanificador,
-        strings.navMetricas,
-        strings.navBuzon
+        "🎬 ${strings.navProduccion}",
+        "🤝 ${strings.navReuniones}",
+        "💡 ${strings.navIdeas}",
+        "📆 ${strings.navPlanificador}",
+        "📈 ${strings.navMetricas}",
+        "💬 ${strings.navBuzon}"
     )
 
     Column(modifier = modifier.fillMaxSize()) {
-        ScrollableTabRow(
-            selectedTabIndex = tab,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
-            edgePadding = 8.dp
+        // Píldoras de sección, más amistosas que las tabs clásicas
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             tabs.forEachIndexed { index, label ->
-                Tab(
-                    selected = tab == index,
-                    onClick = { tab = index },
-                    text = {
-                        if (index == 5 && buzonState.pendientes > 0) {
-                            BadgedBox(badge = {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ) { Text("${buzonState.pendientes}") }
-                            }) { Text(label) }
-                        } else {
-                            Text(label)
-                        }
-                    }
-                )
+                val selected = tab == index
+                val texto = if (index == 5 && buzonState.pendientes > 0)
+                    "$label (${buzonState.pendientes})" else label
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    else MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        else Color.White.copy(alpha = 0.10f)
+                    ),
+                    modifier = Modifier.clip(RoundedCornerShape(999.dp)).clickable { tab = index }
+                ) {
+                    Text(
+                        text = texto,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
 
