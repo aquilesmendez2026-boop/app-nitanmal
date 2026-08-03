@@ -1,5 +1,6 @@
 package com.nitanmal.app.presentation.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -202,8 +203,8 @@ fun InicioFanScreen(
                 }
             }
 
-            // Sorteo activo (teaser público)
-            uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
+            // Sorteo activo (teaser para usuarios con sesión; los visitantes lo ven en su bloque)
+            if (user != null) uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
                 item {
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -231,33 +232,169 @@ fun InicioFanScreen(
             }
 
             if (user == null) {
-                // Beneficios de registrarse (CTA de cuenta gratis)
+                // Bloques compactos: cada card se expande al tocarla para ver el detalle.
                 item {
-                    BeneficiosRegistroCard(
-                        sorteoTitulo = uiState.sorteosPublicos.firstOrNull()?.titulo,
-                        onLoginClick = { onLoginClick?.invoke() }
-                    )
-                }
-                // El show + formatos, mismo copy que la web
-                item { AboutPortada() }
-                item { FormatosPortada() }
-                // Horarios: próximos shows
-                if (uiState.proximosEventos.isNotEmpty()) {
-                    item {
-                        SeccionTitulo(
-                            eyebrow = "Horarios",
-                            titulo = "¿Cuándo nos sintonizas?",
-                            subtitulo = "Estos son los próximos shows en vivo. Guárdalos antes de que se te olvide."
+                    BloquePortada(
+                        emoji = "🎬",
+                        titulo = "Episodios",
+                        subtitulo = uiState.recientes.firstOrNull()
+                            ?.let { "Último: #${it.number} · ${it.title}" }
+                            ?: "Muy pronto publicamos el primero"
+                    ) {
+                        uiState.recientes.forEach { episodio ->
+                            EpisodioCardFan(
+                                episodio = episodio,
+                                esPremiumUsuario = false,
+                                onClick = { onOpenEpisodio(episodio.id) }
+                            )
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        Text(
+                            text = strings.fanVerTodos,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable(onClick = onGoToEpisodios)
+                                .padding(vertical = 4.dp)
                         )
                     }
-                    items(uiState.proximosEventos.take(6), key = { "ev-${it.id}" }) { evento ->
-                        EventoCard(evento)
+                }
+                uiState.sorteosPublicos.firstOrNull()?.let { sorteo ->
+                    item {
+                        BloquePortada(
+                            emoji = "🎁",
+                            titulo = strings.fanSorteoActivo,
+                            subtitulo = sorteo.titulo,
+                            accent = MaterialTheme.colorScheme.secondary
+                        ) {
+                            Text(
+                                text = sorteo.premio,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            BotonGradiente(texto = "Participar gratis") { onLoginClick?.invoke() }
+                        }
+                    }
+                }
+                item {
+                    BloquePortada(
+                        emoji = "⭐",
+                        titulo = "Hazte miembro",
+                        subtitulo = "Regístrate gratis y desbloquea más"
+                    ) {
+                        BENEFICIOS_PORTADA.forEach { beneficio ->
+                            Text(
+                                text = beneficio,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 3.dp)
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        BotonGradiente(texto = "Crear cuenta gratis") { onLoginClick?.invoke() }
+                    }
+                }
+                item {
+                    BloquePortada(
+                        emoji = "🎙️",
+                        titulo = "El show",
+                        subtitulo = "Lo que pasa cuando primero se actúa y después se piensa"
+                    ) {
+                        Text(
+                            text = "Ni Tan Mal es la mesa donde se cuentan las historias que no contarías sobrio. Un grupo de amigos, micrófonos abiertos y la honestidad brutal de quienes ya hicieron de todo… y lo volverían a hacer.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        ValoresChips()
+                        Spacer(Modifier.height(12.dp))
+                        FORMATOS_PORTADA.forEach { formato ->
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Text(
+                                        text = formato.tag.uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Text(
+                                        text = formato.titulo,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = formato.descripcion,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                        Text(
+                            text = "“Al final del día, ninguna locura fue tan grave. Estuvo… ni tan mal.”",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontStyle = FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        )
+                    }
+                }
+                if (uiState.proximosEventos.isNotEmpty()) {
+                    item {
+                        BloquePortada(
+                            emoji = "📅",
+                            titulo = "Horarios",
+                            subtitulo = "¿Cuándo nos sintonizas?"
+                        ) {
+                            uiState.proximosEventos.take(6).forEach { evento ->
+                                EventoCard(evento)
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                }
+                if (canalesState.visibles.isNotEmpty()) {
+                    item {
+                        BloquePortada(
+                            emoji = "📣",
+                            titulo = strings.canalesTitle,
+                            subtitulo = "Síguenos y no te pierdas nada"
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                            ) {
+                                canalesState.visibles.forEach { canal -> CanalCard(canal) }
+                            }
+                        }
+                    }
+                }
+                item {
+                    BloquePortada(
+                        emoji = "💬",
+                        titulo = strings.fanBuzonCta,
+                        subtitulo = strings.fanBuzonDesc
+                    ) {
+                        NitanmalButton(
+                            text = strings.fanEnviar,
+                            onClick = { onLoginClick?.invoke() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
 
             // Episodios recientes
-            if (uiState.recientes.isNotEmpty()) {
+            if (user != null && uiState.recientes.isNotEmpty()) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -285,7 +422,7 @@ fun InicioFanScreen(
             }
 
             // Buzón CTA
-            item {
+            if (user != null) item {
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -320,7 +457,7 @@ fun InicioFanScreen(
             }
 
             // Canales / redes sociales
-            if (canalesState.visibles.isNotEmpty()) {
+            if (user != null && canalesState.visibles.isNotEmpty()) {
                 item {
                     Text(
                         text = strings.canalesTitle,
@@ -437,39 +574,120 @@ private val BENEFICIOS_PORTADA = listOf(
     "🎁 Sorteos y novedades primero"
 )
 
+/**
+ * Card compacta de portada: título + gancho de una línea.
+ * Al tocarla se expande y muestra el contenido completo.
+ */
 @Composable
-private fun SeccionTitulo(
-    eyebrow: String,
+private fun BloquePortada(
+    emoji: String,
     titulo: String,
     subtitulo: String? = null,
-    modifier: Modifier = Modifier
+    accent: Color = MaterialTheme.colorScheme.primary,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.fillMaxWidth().padding(top = 16.dp)
+    var expanded by remember { mutableStateOf(false) }
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { expanded = !expanded }
     ) {
-        Text(
-            text = eyebrow.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = titulo,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
-        )
-        if (subtitulo != null) {
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = subtitulo,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = accent.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = emoji,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = titulo,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (subtitulo != null) {
+                        Text(
+                            text = subtitulo,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = if (expanded) 3 else 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = if (expanded) "▴" else "▾",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 14.dp)) { content() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BotonGradiente(
+    texto: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
+                )
             )
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp)
+    ) {
+        Text(text = texto, fontWeight = FontWeight.Bold, color = Color.White)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ValoresChips(modifier: Modifier = Modifier) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        VALORES_PORTADA.forEach { valor ->
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                )
+            ) {
+                Text(
+                    text = valor,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
         }
     }
 }
@@ -539,187 +757,6 @@ private fun HeroPortada(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Text("Próximos shows", fontWeight = FontWeight.SemiBold)
-            }
-        }
-    }
-}
-
-@Composable
-private fun BeneficiosRegistroCard(
-    sorteoTitulo: String?,
-    onLoginClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "⭐ ZONA DE REGISTRADOS",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "Regístrate gratis y desbloquea más",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(12.dp))
-            BENEFICIOS_PORTADA.forEach { beneficio ->
-                Text(
-                    text = beneficio,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 3.dp)
-                )
-            }
-            if (sorteoTitulo != null) {
-                Spacer(Modifier.height(10.dp))
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0xFFf59e0b).copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = "🎁 Sorteo activo: $sorteoTitulo",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFfbbf24),
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                    )
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-                        )
-                    )
-                    .clickable(onClick = onLoginClick)
-                    .padding(vertical = 14.dp)
-            ) {
-                Text(
-                    text = "Crear cuenta gratis",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = buildAnnotatedString {
-                    append("¿Ya tienes cuenta? ")
-                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
-                        append("Inicia sesión")
-                    }
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onLoginClick)
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AboutPortada(modifier: Modifier = Modifier) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        SeccionTitulo(
-            eyebrow = "El show",
-            titulo = "Lo que pasa cuando primero se actúa y después se piensa",
-            subtitulo = "Ni Tan Mal es la mesa donde se cuentan las historias que no contarías sobrio. Un grupo de amigos, micrófonos abiertos y la honestidad brutal de quienes ya hicieron de todo… y lo volverían a hacer."
-        )
-        Spacer(Modifier.height(14.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            VALORES_PORTADA.forEach { valor ->
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                    )
-                ) {
-                    Text(
-                        text = valor,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-        Text(
-            text = "“Al final del día, ninguna locura fue tan grave. Estuvo… ni tan mal.”",
-            style = MaterialTheme.typography.bodyMedium,
-            fontStyle = FontStyle.Italic,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun FormatosPortada(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        SeccionTitulo(
-            eyebrow = "Formatos",
-            titulo = "Dos formas de meterse en problemas",
-            subtitulo = "Cada semana alternamos entre la consola y la copa. Mismo desorden, distinto escenario."
-        )
-        Spacer(Modifier.height(14.dp))
-        FORMATOS_PORTADA.forEach { formato ->
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f)
-                    ) {
-                        Text(
-                            text = formato.tag,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = formato.titulo,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = formato.descripcion,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }
