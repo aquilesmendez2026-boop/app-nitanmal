@@ -19,5 +19,8 @@
 -if class androidx.credentials.CredentialManager
 -keep class androidx.credentials.playservices.** { *; }
 
+# Compacta el DEX moviendo las clases ofuscadas al paquete raiz
+-repackageclasses
+
 # Trazas de pila legibles en Play Console
 -keepattributes SourceFile,LineNumberTable
