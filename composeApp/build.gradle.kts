@@ -109,7 +109,7 @@ android {
         applicationId = "com.nitanmal.app"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 3
+        versionCode = 4
         versionName = "1.2"
 
         buildConfigField("String", "ADMIN_API_KEY", "\"${localProperties["ADMIN_API_KEY"] ?: ""}\"")
