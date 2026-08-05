@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -15,7 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,328 +57,251 @@ private fun cuenta(n: Int, singular: String, plural: String) = if (n == 1) "1 $s
 @Composable
 fun InicioFanScreen(
     user: User,
-    isAdmin: Boolean,
     fanViewModel: FanViewModel,
     canalesViewModel: CanalesViewModel,
     miZonaViewModel: MiZonaViewModel,
-    produccionViewModel: ProduccionViewModel,
-    ideasViewModel: IdeasViewModel,
-    planificadorViewModel: PlanificadorViewModel,
-    reunionesViewModel: ReunionesViewModel,
-    buzonViewModel: BuzonViewModel,
     onGoToEnVivo: () -> Unit,
-    onGoToEpisodios: () -> Unit,
     onOpenEpisodio: (String) -> Unit,
-    onGoToMiZona: () -> Unit,
-    onGoToTrabajo: () -> Unit,
-    onGoToAgenda: () -> Unit,
-    onGoToAdmin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
     val uiState by fanViewModel.uiState.collectAsState()
-    val canalesState by canalesViewModel.uiState.collectAsState()
-    val miZonaState by miZonaViewModel.uiState.collectAsState()
-    val prodState by produccionViewModel.uiState.collectAsState()
-    val ideasState by ideasViewModel.uiState.collectAsState()
-    val planState by planificadorViewModel.uiState.collectAsState()
-    val reunionesState by reunionesViewModel.uiState.collectAsState()
-    val buzonState by buzonViewModel.uiState.collectAsState()
+    val zonaState by miZonaViewModel.uiState.collectAsState()
     val uriHandler = LocalUriHandler.current
+    val clipboard = LocalClipboardManager.current
 
     LaunchedEffect(Unit) {
-        if (uiState.episodios.isEmpty()) fanViewModel.load() else fanViewModel.refreshLive()
-        if (canalesState.canales.isEmpty()) canalesViewModel.load()
-        if (!user.esEquipo && miZonaState.zona == null) miZonaViewModel.load()
-        if (user.esEquipo) {
-            if (prodState.episodios.isEmpty()) produccionViewModel.load()
-            if (ideasState.notas.isEmpty()) ideasViewModel.load()
-            if (planState.posts.isEmpty()) planificadorViewModel.load()
-            if (reunionesState.reuniones.isEmpty()) reunionesViewModel.load()
-            if (buzonState.preguntas.isEmpty()) buzonViewModel.load()
-        }
+        if (uiState.episodios.isEmpty()) fanViewModel.load()
+        if (zonaState.zona == null) miZonaViewModel.load()
     }
 
-    // Trabajo asignado a mí (mismos filtros que MiTrabajoScreen)
-    val hoy = todayIsoDate()
-    val pendientes = remember(prodState.episodios, ideasState.notas, planState.posts) {
-        var total = 0
-        var atrasados = 0
-        prodState.episodios.forEach { ep ->
-            Plantillas.STAGES.forEach { stage ->
-                val etapa = ep.etapa(stage)
-                if (etapa.responsableId == user.id && etapa.estado != "aprobada") {
-                    total++
-                    val fecha = etapa.fecha
-                    if (!fecha.isNullOrBlank() && fecha < hoy) atrasados++
-                }
-            }
-        }
-        ideasState.notas.forEach { nota ->
-            if (nota.responsableId == user.id &&
-                (nota.estado == null || nota.estado == "nueva" || nota.estado == "revision")
-            ) total++
-        }
-        planState.posts.forEach { post ->
-            if (post.responsableId == user.id &&
-                post.estado in listOf("sugerido", "borrador", "programado")
-            ) total++
-        }
-        total to atrasados
-    }
+    val zona = zonaState.zona
+    val sorteosActivos = zona?.sorteos?.filter { it.activo } ?: emptyList()
+    val encuestasActivas = zona?.encuestas?.filter { it.activa } ?: emptyList()
+    val sugerencias = zona?.sugerencias ?: emptyList()
+    val referidos = zona?.referidos ?: 0
+    val nombre = user.apodo?.takeIf { it.isNotBlank() } ?: user.name.split(" ").firstOrNull() ?: ""
+    val refLink = "https://nitanmal.cl/?ref=${user.id}"
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // Saludo + rol y plan
+            // ── Saludo ──
             item {
                 Column {
                     Text(
-                        text = "Ni Tan Mal",
+                        text = "🔒 ZONA DE REGISTRADOS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = buildAnnotatedString {
+                            append("Hola, ")
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) { append(nombre) }
+                        },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onBackground
                     )
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "¡Hola, ${user.apodo?.takeIf { it.isNotBlank() } ?: user.name.split(" ").firstOrNull() ?: ""}!",
+                        text = "Contenido que no verás en las plataformas públicas y descargables solo para la comunidad.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ChipInfo(
-                            texto = when (user.role) {
+                            texto = "Rol: " + when (user.role) {
                                 "superadmin" -> "Superadmin"
                                 "admin" -> "Admin"
                                 "participante" -> "Participante"
                                 else -> "Miembro"
                             }
                         )
-                        ChipInfo(texto = if (user.esPremium) "Premium 🥃" else "Plan gratis")
+                        if (user.esPremium) ChipInfo(texto = "👑 Premium")
                     }
                 }
             }
 
-            // Banner EN VIVO / próximo show
-            item {
-                val live = uiState.live
-                if (live?.isLive == true) {
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            // Invitación a premium (como la web)
+            if (!user.esPremium) {
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFFdc2626), Color(0xFF7f1d1d))
-                                )
-                            )
-                            .clickable(onClick = onGoToEnVivo)
+                            .background(Color(0xFFf59e0b).copy(alpha = 0.10f))
+                            .padding(18.dp)
                     ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
+                        Text(text = "👑", style = MaterialTheme.typography.headlineSmall)
+                        Spacer(Modifier.width(14.dp))
+                        Column {
                             Text(
-                                text = strings.fanEnVivoAhora,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
+                                text = "Desbloquea todo con Premium",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            if (live.title.isNotBlank()) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = live.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White.copy(alpha = 0.85f)
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    val proximo = uiState.proximoEvento
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .glass(20.dp)
-                            .clickable(onClick = onGoToEnVivo)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                text = strings.fanProximoShow,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
+                                text = "Descargas premium, episodios exclusivos y sin anuncios.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(Modifier.height(4.dp))
-                            if (proximo != null) {
-                                Text(
-                                    text = proximo.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "${proximo.date} · ${proximo.time} hrs",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            } else {
-                                Text(
-                                    text = strings.fanSinShows,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
                     }
                 }
             }
 
-            // ── Resumen de acceso por rol ──
+            // ── Contenido solo para miembros ──
             item {
-                Text(
-                    text = "Tu acceso",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                SeccionZonaTitulo("Exclusivo", "Contenido solo para miembros")
             }
-            item {
-                val ultimo = uiState.recientes.firstOrNull()
-                ResumenCard(
-                    emoji = "🎬",
-                    titulo = strings.fanNavEpisodios,
-                    resumen = ultimo?.let { "Último: #${it.number} · ${it.title}" }
-                        ?: "Todos los capítulos del podcast",
-                    onClick = onGoToEpisodios
-                )
-            }
-            if (!user.esEquipo) {
-                item {
-                    val zona = miZonaState.zona
-                    ResumenCard(
-                        emoji = "⭐",
-                        titulo = strings.fanNavMiZona,
-                        resumen = if (zona != null)
-                            cuenta(zona.sorteos.count { it.activo }, "sorteo activo", "sorteos activos") +
-                                " · " + cuenta(zona.encuestas.count { it.activa }, "encuesta", "encuestas") +
-                                " · " + cuenta(miZonaState.descargas.size, "descarga", "descargas")
-                        else "Sorteos, encuestas, sugerencias y descargas",
-                        accent = MaterialTheme.colorScheme.secondary,
-                        onClick = onGoToMiZona
-                    )
-                }
-            }
-            if (user.esEquipo) {
-                item {
-                    val (total, atrasados) = pendientes
-                    ResumenCard(
-                        emoji = "💼",
-                        titulo = strings.navTrabajo,
-                        resumen = when {
-                            total == 0 -> "Sin pendientes asignados 🎉"
-                            atrasados > 0 -> cuenta(total, "pendiente asignado", "pendientes asignados") +
-                                " · " + cuenta(atrasados, "atrasado", "atrasados")
-                            else -> cuenta(total, "pendiente asignado", "pendientes asignados")
-                        },
-                        accent = if (pendientes.second > 0) Color(0xFFdc2626)
-                        else MaterialTheme.colorScheme.primary,
-                        onClick = onGoToTrabajo
-                    )
-                }
-                item {
-                    val preguntasPendientes = buzonState.preguntas.count { !it.answered }
-                    ResumenCard(
-                        emoji = "📅",
-                        titulo = strings.navAgenda,
-                        resumen = cuenta(prodState.episodios.size, "episodio en producción", "episodios en producción") +
-                            " · " + cuenta(reunionesState.proximas.size, "reunión próxima", "reuniones próximas") +
-                            " · " + cuenta(preguntasPendientes, "pregunta sin responder", "preguntas sin responder"),
-                        onClick = onGoToAgenda
-                    )
-                }
-            }
-            if (isAdmin) {
-                item {
-                    ResumenCard(
-                        emoji = "🛡️",
-                        titulo = strings.navAdmin,
-                        resumen = (if (uiState.live?.isLive == true) "🔴 En vivo ahora"
-                        else "Sin transmisión") +
-                            " · " + cuenta(uiState.sorteosPublicos.size, "sorteo abierto", "sorteos abiertos"),
-                        onClick = onGoToAdmin
-                    )
-                }
-            }
-            item {
-                ResumenCard(
-                    emoji = "💬",
-                    titulo = strings.fanBuzonCta,
-                    resumen = strings.fanBuzonDesc,
-                    onClick = { fanViewModel.setShowPreguntaSheet(true) }
-                )
+            items(EXCLUSIVO_MIEMBROS, key = { "ex-${it.titulo}" }) { item ->
+                ExclusivoCard(item)
+                Spacer(Modifier.height(12.dp))
             }
 
-            // Canales / redes sociales
-            if (canalesState.visibles.isNotEmpty()) {
+            // ── Descarga tu material ──
+            item { SeccionZonaTitulo("Descargables", "Descarga tu material") }
+            if (zonaState.descargas.isEmpty()) {
                 item {
                     Text(
-                        text = strings.canalesTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        text = "Aún no hay archivos para descargar. ¡Pronto!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
-                item {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        canalesState.visibles.forEach { canal -> CanalCard(canal) }
-                    }
-                }
+            }
+            items(zonaState.descargas, key = { "dl-${it.id}" }) { descarga ->
+                DescargaZonaCard(
+                    descarga = descarga,
+                    esPremiumUsuario = user.esPremium,
+                    onAbrir = { url -> runCatching { uriHandler.openUri(url) } }
+                )
+                Spacer(Modifier.height(12.dp))
             }
 
-            // Footer
+            // ── Trae a tus amigos ──
+            item { SeccionZonaTitulo("Invita y gana", "Trae a tus amigos") }
             item {
-                Text(
-                    text = "© 2026 Ni Tan Mal",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                ReferidosZona(
+                    referidos = referidos,
+                    refLink = refLink,
+                    haySorteo = sorteosActivos.isNotEmpty(),
+                    onCopiar = {
+                        clipboard.setText(AnnotatedString(refLink))
+                        miZonaViewModel.mostrarInfo("Link copiado ✅")
+                    }
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ── Sorteo activo ──
+            item {
+                SeccionZonaTitulo(
+                    "Sorteos",
+                    if (sorteosActivos.size > 1) "Sorteos activos" else "Sorteo activo"
                 )
             }
+            if (sorteosActivos.isEmpty()) {
+                item {
+                    Text(
+                        text = "No hay sorteos activos ahora mismo. Vuelve pronto 🎁",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
+            }
+            items(sorteosActivos, key = { "s-${it.id}" }) { sorteo ->
+                SorteoZonaCard(
+                    sorteo = sorteo,
+                    onParticipar = { miZonaViewModel.participarSorteo(sorteo.id) }
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ── Tu opinión cuenta ──
+            item { SeccionZonaTitulo("Encuestas", "Tu opinión cuenta") }
+            if (encuestasActivas.isEmpty()) {
+                item {
+                    Text(
+                        text = "No hay encuestas abiertas. Pronto habrá más 🗳️",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
+            }
+            items(encuestasActivas, key = { "e-${it.id}" }) { encuesta ->
+                EncuestaZonaCard(
+                    encuesta = encuesta,
+                    onVotar = { opcionId -> miZonaViewModel.votarEncuesta(encuesta.id, opcionId) }
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ── Vota temas y sugiere invitados ──
+            item { SeccionZonaTitulo("Comunidad", "Vota temas y sugiere invitados") }
+            item {
+                NitanmalButton(
+                    text = "+ ${strings.zonaSugerir}",
+                    onClick = { miZonaViewModel.setShowSugerirSheet(true) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+            if (sugerencias.isEmpty()) {
+                item {
+                    Text(
+                        text = "Sé el primero en sugerir un tema o invitado 💡",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                }
+            }
+            items(sugerencias, key = { "sg-${it.id}" }) { sug ->
+                SugerenciaZonaCard(
+                    sugerencia = sug,
+                    onVotar = { miZonaViewModel.votarSugerencia(sug.id) }
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
+            item { Spacer(Modifier.height(24.dp)) }
         }
 
-        uiState.error?.let { error ->
+        zonaState.error?.let { error ->
             Snackbar(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                action = { TextButton(onClick = { fanViewModel.clearError() }) { Text("OK") } }
+                action = { TextButton(onClick = { miZonaViewModel.clearError() }) { Text("OK") } }
             ) { Text(error) }
         }
-
-        uiState.info?.let { info ->
+        zonaState.info?.let { info ->
             Snackbar(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.tertiary,
                 contentColor = Color.White,
                 action = {
-                    TextButton(onClick = { fanViewModel.clearInfo() }) {
-                        Text("OK", color = Color.White)
-                    }
+                    TextButton(onClick = { miZonaViewModel.clearInfo() }) { Text("OK", color = Color.White) }
                 }
             ) { Text(info) }
         }
     }
 
-    if (uiState.showPreguntaSheet) {
-        ModalBottomSheet(onDismissRequest = { fanViewModel.setShowPreguntaSheet(false) }) {
-            var contenido by remember { mutableStateOf("") }
+    // Hoja para sugerir tema / invitado
+    if (zonaState.showSugerirSheet) {
+        ModalBottomSheet(onDismissRequest = { miZonaViewModel.setShowSugerirSheet(false) }) {
+            var tipo by remember { mutableStateOf("tema") }
+            var texto by remember { mutableStateOf("") }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -380,34 +309,427 @@ fun InicioFanScreen(
                     .padding(bottom = 32.dp)
             ) {
                 Text(
-                    text = strings.fanBuzonCta,
+                    text = strings.zonaSugerir,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = tipo == "tema",
+                        onClick = { tipo = "tema" },
+                        label = { Text(strings.zonaSugerirTema) }
+                    )
+                    FilterChip(
+                        selected = tipo == "invitado",
+                        onClick = { tipo = "invitado" },
+                        label = { Text(strings.zonaSugerirInvitado) }
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
                 NitanmalTextField(
-                    value = contenido,
-                    onValueChange = { contenido = it },
+                    value = texto,
+                    onValueChange = { texto = it },
                     placeholder = { Text(strings.fanBuzonPlaceholder) },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4,
-                    enabled = !uiState.isEnviandoPregunta
+                    maxLines = 3,
+                    enabled = !zonaState.isSugiriendo
                 )
                 Spacer(Modifier.height(20.dp))
                 NitanmalButton(
                     text = strings.fanEnviar,
-                    onClick = { fanViewModel.enviarPregunta(contenido.trim()) },
+                    onClick = { miZonaViewModel.sugerir(tipo, texto.trim()) },
                     modifier = Modifier.fillMaxWidth(),
-                    isLoading = uiState.isEnviandoPregunta,
-                    enabled = !uiState.isEnviandoPregunta && contenido.isNotBlank()
+                    isLoading = zonaState.isSugiriendo,
+                    enabled = !zonaState.isSugiriendo && texto.isNotBlank()
                 )
             }
         }
     }
 }
 
-/** Chip informativo pequeño (rol, plan). */
+/** Contenido exclusivo de la comunidad (mismo listado que la web). */
+private data class ExclusivoItem(
+    val titulo: String,
+    val etiqueta: String,
+    val duracion: String,
+    val descripcion: String
+)
+
+private val EXCLUSIVO_MIEMBROS = listOf(
+    ExclusivoItem(
+        titulo = "Episodio 12 — versión sin censura",
+        etiqueta = "Extendido",
+        duracion = "1h 52m",
+        descripcion = "La versión completa que no subimos a plataformas públicas: 40 minutos extra de puro caos."
+    ),
+    ExclusivoItem(
+        titulo = "Detrás de cámaras: la noche de la apuesta",
+        etiqueta = "Detrás de cámaras",
+        duracion = "27m",
+        descripcion = "Lo que pasó antes y después de grabar. Cámaras encendidas cuando nadie creía que grababan."
+    ),
+    ExclusivoItem(
+        titulo = "Blooper reel — temporada 1",
+        etiqueta = "Solo miembros",
+        duracion = "18m",
+        descripcion = "Todas las veces que perdimos el hilo, el trago o la dignidad. Compilado exclusivo."
+    )
+)
+
+@Composable
+private fun ExclusivoCard(item: ExclusivoItem) {
+    Column(modifier = Modifier.fillMaxWidth().glass(18.dp).padding(18.dp)) {
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = Color(0xFFf59e0b).copy(alpha = 0.12f)
+        ) {
+            Text(
+                text = "🥃 ${item.etiqueta.uppercase()}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFfbbf24),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = item.titulo,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = item.descripcion,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "▶  Reproducir · ${item.duracion}",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+/** Título de sección alineado a la izquierda con subrayado degradado (como la web). */
+@Composable
+private fun SeccionZonaTitulo(eyebrow: String, titulo: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 16.dp)) {
+        Text(
+            text = eyebrow.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = titulo,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(Modifier.height(10.dp))
+        Box(
+            modifier = Modifier
+                .width(64.dp)
+                .height(3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun VacioZona(texto: String) {
+    Text(
+        text = texto,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp)
+    )
+}
+
+@Composable
+private fun ReferidosZona(
+    referidos: Int,
+    refLink: String,
+    haySorteo: Boolean,
+    onCopiar: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().glass(20.dp).padding(20.dp)) {
+        Text(
+            text = "Comparte tu link de invitación",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = if (referidos == 0) {
+                if (haySorteo) "Cada amigo que se registre te suma +1 chance en el sorteo."
+                else "Cada amigo que se registre suma para los próximos beneficios."
+            } else {
+                "Has invitado a $referidos " + (if (referidos == 1) "amigo" else "amigos") + ". " +
+                    (if (haySorteo) "Cada uno te suma +1 chance en el sorteo."
+                    else "Cada uno suma para los próximos beneficios.")
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(14.dp))
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
+        ) {
+            Text(
+                text = refLink,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        NitanmalButton(
+            text = "Copiar link",
+            onClick = onCopiar,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun SorteoZonaCard(
+    sorteo: com.nitanmal.app.domain.model.Sorteo,
+    onParticipar: () -> Unit
+) {
+    val strings = rememberStrings()
+    Column(modifier = Modifier.fillMaxWidth().glass(18.dp).padding(18.dp)) {
+        Text(
+            text = sorteo.titulo,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (sorteo.premio.isNotBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = sorteo.premio,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (sorteo.comoParticipar.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = sorteo.comoParticipar,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = cuenta(sorteo.participantes, "participante", "participantes"),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                modifier = Modifier.weight(1f)
+            )
+            if (sorteo.participa) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = "✅ Participando",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            } else {
+                Button(onClick = onParticipar, shape = RoundedCornerShape(999.dp)) {
+                    Text(strings.zonaParticipar, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EncuestaZonaCard(
+    encuesta: com.nitanmal.app.domain.model.Encuesta,
+    onVotar: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().glass(18.dp).padding(18.dp)) {
+        Text(
+            text = encuesta.pregunta,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(12.dp))
+        encuesta.opciones.forEach { opcion ->
+            val votada = encuesta.miVoto == opcion.id
+            val pct = if (encuesta.total > 0) opcion.votos * 100 / encuesta.total else 0
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(enabled = encuesta.miVoto == null) { onVotar(opcion.id) }
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = (if (votada) "✅ " else "") + opcion.texto,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (votada) FontWeight.Bold else FontWeight.Normal,
+                        color = if (votada) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (encuesta.miVoto != null) {
+                        Text(
+                            text = "$pct%",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (encuesta.miVoto != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(pct / 100f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(
+                                    if (votada) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                )
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = cuenta(encuesta.total, "voto", "votos"),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+    }
+}
+
+@Composable
+private fun SugerenciaZonaCard(
+    sugerencia: com.nitanmal.app.domain.model.Sugerencia,
+    onVotar: () -> Unit
+) {
+    val strings = rememberStrings()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().glass(14.dp).padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+        ) {
+            Text(
+                text = if (sugerencia.tipo == "invitado") strings.zonaSugerirInvitado
+                else strings.zonaSugerirTema,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = sugerencia.texto,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = if (sugerencia.miVoto) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onVotar)
+        ) {
+            Text(
+                text = "▲ " + sugerencia.votos,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (sugerencia.miVoto) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DescargaZonaCard(
+    descarga: com.nitanmal.app.domain.model.Descarga,
+    esPremiumUsuario: Boolean,
+    onAbrir: (String) -> Unit
+) {
+    val strings = rememberStrings()
+    val bloqueada = descarga.premium && !esPremiumUsuario
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(14.dp)
+            .clickable(enabled = !bloqueada && !descarga.url.isNullOrBlank()) {
+                descarga.url?.let(onAbrir)
+            }
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = (if (descarga.premium) "🥃 " else "") + descarga.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = listOfNotNull(
+                    descarga.type,
+                    descarga.size?.takeIf { it.isNotBlank() }
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+        }
+        Text(
+            text = if (bloqueada) "🔒 Premium" else strings.zonaDescargar,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (bloqueada) MaterialTheme.colorScheme.secondary
+            else MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
 @Composable
 private fun ChipInfo(texto: String) {
     Surface(

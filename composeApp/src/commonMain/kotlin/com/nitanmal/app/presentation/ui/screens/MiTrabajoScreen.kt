@@ -117,14 +117,6 @@ fun MiTrabajoScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = strings.trabajoTitle,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
-        )
-
         if (items.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 if (prodState.isLoading || ideasState.isLoading || planState.isLoading) {

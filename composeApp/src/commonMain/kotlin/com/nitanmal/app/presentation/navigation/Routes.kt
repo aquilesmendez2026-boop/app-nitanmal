@@ -60,11 +60,9 @@ object CuentaRoute
 
 // ── Navbar única por rol ──
 
+/** Agenda del equipo. [seccion] abre directo una sección (-1 = plana de resumen). */
 @Serializable
-object TrabajoRoute
-
-@Serializable
-object AgendaEquipoRoute
+data class AgendaEquipoRoute(val seccion: Int = -1)
 
 @Serializable
 object AdminRoute

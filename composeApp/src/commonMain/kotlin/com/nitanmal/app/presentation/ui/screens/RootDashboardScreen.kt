@@ -36,9 +36,9 @@ private data class TabDef(
 /**
  * Shell único con navbar por rol (el rol agrega pestañas, nunca reordena).
  * Solo para usuarios con sesión; los visitantes ven PortadaPublicaScreen.
- * - miembro:       Inicio · Mi Zona · Ajustes
- * - participante:  Inicio · Trabajo · Agenda · Ajustes
- * - admin+:        Inicio · Trabajo · Agenda · Admin · Ajustes
+ * - miembro:       Inicio (zona del miembro) · Ajustes
+ * - participante:  Inicio · Agenda · Ajustes
+ * - admin+:        Inicio · Agenda · Admin · Ajustes
  */
 @Composable
 fun RootDashboardScreen(
@@ -62,7 +62,7 @@ fun RootDashboardScreen(
     val planificadorViewModel = remember { PlanificadorViewModel(teamRepository) }
     val reunionesViewModel = remember { ReunionesViewModel(teamRepository) }
     val buzonViewModel = remember { BuzonViewModel(teamRepository) }
-    val adminViewModel = remember { AdminViewModel(fanRepository) }
+    val adminViewModel = remember { AdminViewModel(fanRepository, teamRepository) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -73,22 +73,18 @@ fun RootDashboardScreen(
     val tabs = remember(user.role) {
         buildList {
             add(TabDef(strings.fanNavInicio, AppIcons.Home, FanInicioRoute) { r ->
-                r == ruta(FanInicioRoute::class) ||
+                r == ruta(FanInicioRoute::class)
+            })
+            // La zona del miembro va justo después del inicio, para todos.
+            add(TabDef(strings.fanNavMiZona, AppIcons.Star, MiZonaRoute) { r ->
+                r == ruta(MiZonaRoute::class) ||
                     r == ruta(EnVivoRoute::class) ||
                     r == ruta(EpisodiosFanRoute::class) ||
                     (ruta(EpisodioFanDetailRoute::class)?.let { r?.startsWith(it) } == true)
             })
-            if (!user.esEquipo) {
-                add(TabDef(strings.fanNavMiZona, AppIcons.Star, MiZonaRoute) { r ->
-                    r == ruta(MiZonaRoute::class)
-                })
-            }
             if (user.esEquipo) {
-                add(TabDef(strings.navTrabajo, AppIcons2.Briefcase, TrabajoRoute) { r ->
-                    r == ruta(TrabajoRoute::class)
-                })
-                add(TabDef(strings.navAgenda, AppIcons2.Event, AgendaEquipoRoute) { r ->
-                    r == ruta(AgendaEquipoRoute::class) ||
+                add(TabDef(strings.navAgenda, AppIcons2.Event, AgendaEquipoRoute()) { r ->
+                    (ruta(AgendaEquipoRoute::class)?.let { r?.startsWith(it) } == true) ||
                         (ruta(IdeaDetailRoute::class)?.let { r?.startsWith(it) } == true) ||
                         (ruta(EpisodioDetailRoute::class)?.let { r?.startsWith(it) } == true)
                 })
@@ -107,11 +103,13 @@ fun RootDashboardScreen(
     val selectedIndex = tabs.indexOfFirst { it.matches(currentRoute) }.coerceAtLeast(0)
     val fanState by fanViewModel.uiState.collectAsState()
     val isLive = fanState.live?.isLive == true
+    // El Inicio es la portada a pantalla completa: sin navbar, como la web.
+    val enPortada = currentRoute == null || currentRoute == ruta(FanInicioRoute::class)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Box(
+            if (!enPortada) Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .background(MaterialTheme.colorScheme.surface)
@@ -161,27 +159,29 @@ fun RootDashboardScreen(
             ) {
                 // ── Fan ──
                 composable<FanInicioRoute> {
+                    // El inicio es la misma portada con hero que ve el visitante,
+                    // pero el botón Entrar pasa a mostrar el nombre del usuario.
+                    PortadaPublicaScreen(
+                        onLoginClick = {},
+                        user = user,
+                        onGoToZona = { navController.navigate(MiZonaRoute) { launchSingleTop = true } },
+                        // El botón con tu nombre te lleva a tu zona con el navbar por rol.
+                        onGoToAjustes = { navController.navigate(MiZonaRoute) { launchSingleTop = true } },
+                        fanViewModelExterno = fanViewModel,
+                        canalesViewModelExterno = canalesViewModel,
+                        aplicarFondo = false
+                    )
+                }
+                composable<MiZonaRoute> {
                     InicioFanScreen(
                         user = user,
-                        isAdmin = isAdmin,
                         fanViewModel = fanViewModel,
                         canalesViewModel = canalesViewModel,
                         miZonaViewModel = miZonaViewModel,
-                        produccionViewModel = produccionViewModel,
-                        ideasViewModel = ideasViewModel,
-                        planificadorViewModel = planificadorViewModel,
-                        reunionesViewModel = reunionesViewModel,
-                        buzonViewModel = buzonViewModel,
                         onGoToEnVivo = { navController.navigate(EnVivoRoute) { launchSingleTop = true } },
-                        onGoToEpisodios = { navController.navigate(EpisodiosFanRoute) { launchSingleTop = true } },
                         onOpenEpisodio = { id ->
-                            navController.navigate(EpisodiosFanRoute) { launchSingleTop = true }
                             navController.navigate(EpisodioFanDetailRoute(id))
-                        },
-                        onGoToMiZona = { navController.navigate(MiZonaRoute) { launchSingleTop = true } },
-                        onGoToTrabajo = { navController.navigate(TrabajoRoute) { launchSingleTop = true } },
-                        onGoToAgenda = { navController.navigate(AgendaEquipoRoute) { launchSingleTop = true } },
-                        onGoToAdmin = { navController.navigate(AdminRoute) { launchSingleTop = true } }
+                        }
                     )
                 }
                 composable<EnVivoRoute> { EnVivoScreen(fanViewModel = fanViewModel) }
@@ -202,26 +202,11 @@ fun RootDashboardScreen(
                     )
                 }
 
-                composable<MiZonaRoute> {
-                    MiZonaScreen(viewModel = miZonaViewModel, esPremiumUsuario = user.esPremium)
-                }
-
                     // ── Equipo ──
-                    composable<TrabajoRoute> {
-                        MiTrabajoScreen(
-                            user = user,
-                            produccionViewModel = produccionViewModel,
-                            ideasViewModel = ideasViewModel,
-                            planificadorViewModel = planificadorViewModel,
-                            onOpenEpisodio = { id -> navController.navigate(EpisodioDetailRoute(id)) },
-                            onOpenIdea = { id -> navController.navigate(IdeaDetailRoute(id)) },
-                            onGoToPlanner = {
-                                navController.navigate(AgendaEquipoRoute) { launchSingleTop = true }
-                            }
-                        )
-                    }
-                    composable<AgendaEquipoRoute> {
+                    composable<AgendaEquipoRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<AgendaEquipoRoute>()
                         AgendaEquipoScreen(
+                            seccionInicial = route.seccion,
                             user = user,
                             isAdmin = isAdmin,
                             produccionViewModel = produccionViewModel,
@@ -254,7 +239,12 @@ fun RootDashboardScreen(
                     }
 
                     // ── Admin ──
-                    composable<AdminRoute> { AdminScreen(viewModel = adminViewModel) }
+                    composable<AdminRoute> {
+                        AdminScreen(
+                            viewModel = adminViewModel,
+                            isSuperAdmin = user.role == "superadmin"
+                        )
+                    }
 
                     // ── Ajustes ──
                     composable<CuentaRoute> {

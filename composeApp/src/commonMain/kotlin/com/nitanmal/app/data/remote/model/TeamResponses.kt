@@ -82,6 +82,19 @@ data class EpisodioResponse(val item: Episodio? = null, val error: String? = nul
 @Serializable
 data class EquipoResponse(val equipo: List<MiembroEquipo> = emptyList(), val error: String? = null)
 
+@Serializable
+data class CanalesInput(val canales: List<com.nitanmal.app.domain.model.Canal>)
+
+@Serializable
+data class RolInput(val role: String)
+
+@Serializable
+data class UsuariosResponse(
+    val usuarios: List<com.nitanmal.app.domain.model.UsuarioAdmin> = emptyList(),
+    val invitaciones: List<String> = emptyList(),
+    val error: String? = null
+)
+
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ProduccionCreateInput(

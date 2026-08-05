@@ -80,16 +80,24 @@ private val BENEFICIOS_PORTADA = listOf(
     "🎁 Sorteos y novedades primero"
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortadaPublicaScreen(
     onLoginClick: () -> Unit,
+    user: com.nitanmal.app.domain.model.User? = null,
+    onGoToZona: () -> Unit = {},
+    onGoToAjustes: () -> Unit = {},
+    fanViewModelExterno: FanViewModel? = null,
+    canalesViewModelExterno: CanalesViewModel? = null,
+    /** false cuando va embebida en el shell (que ya pone fondo e insets). */
+    aplicarFondo: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val platformAuth = LocalPlatformAuth.current
     val fanRepository = remember { FanRepositoryImpl(platformAuth) }
     val teamRepository = remember { TeamRepositoryImpl(platformAuth) }
-    val fanViewModel = remember { FanViewModel(fanRepository) }
-    val canalesViewModel = remember { CanalesViewModel(teamRepository) }
+    val fanViewModel = remember { fanViewModelExterno ?: FanViewModel(fanRepository) }
+    val canalesViewModel = remember { canalesViewModelExterno ?: CanalesViewModel(teamRepository) }
     val uiState by fanViewModel.uiState.collectAsState()
     val canalesState by canalesViewModel.uiState.collectAsState()
 
@@ -100,13 +108,19 @@ fun PortadaPublicaScreen(
 
     var detalle by remember { mutableStateOf<DetallePortada?>(null) }
 
-    FondoNocturno(modifier = modifier) {
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    FondoNocturno(modifier = modifier, activo = aplicarFondo) {
+        Box(
+            modifier = if (aplicarFondo) Modifier.fillMaxSize().statusBarsPadding()
+            else Modifier.fillMaxSize()
+        ) {
         when (val d = detalle) {
             null -> PortadaHome(
                 fanViewModel = fanViewModel,
                 canalesViewModel = canalesViewModel,
+                user = user,
                 onLoginClick = onLoginClick,
+                onGoToZona = onGoToZona,
+                onGoToAjustes = onGoToAjustes,
                 onOpen = { detalle = it }
             )
 
@@ -165,10 +179,14 @@ fun PortadaPublicaScreen(
                         }
                     }
                     Spacer(Modifier.height(20.dp))
-                    BotonGradiente(texto = "Participar gratis", onClick = onLoginClick)
+                    BotonGradiente(
+                        texto = if (user != null) "Participar desde tu zona" else "Participar gratis",
+                        onClick = { if (user != null) onGoToZona() else onLoginClick() }
+                    )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Necesitas una cuenta gratis para participar.",
+                        text = if (user != null) "Los sorteos se juegan en tu zona de miembro."
+                        else "Necesitas una cuenta gratis para participar.",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         textAlign = TextAlign.Center,
@@ -360,6 +378,62 @@ fun PortadaPublicaScreen(
                 )
             }
         }
+
+        // Avisos (pregunta enviada, errores)
+        uiState.error?.let { error ->
+            Snackbar(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                action = { TextButton(onClick = { fanViewModel.clearError() }) { Text("OK") } }
+            ) { Text(error) }
+        }
+        uiState.info?.let { info ->
+            Snackbar(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = Color.White,
+                action = {
+                    TextButton(onClick = { fanViewModel.clearInfo() }) { Text("OK", color = Color.White) }
+                }
+            ) { Text(info) }
+        }
+        }
+    }
+
+    // Hoja del buzón (solo con sesión)
+    if (uiState.showPreguntaSheet) {
+        val strings = rememberStrings()
+        ModalBottomSheet(onDismissRequest = { fanViewModel.setShowPreguntaSheet(false) }) {
+            var contenido by remember { mutableStateOf("") }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = strings.fanBuzonCta,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(16.dp))
+                com.nitanmal.app.presentation.ui.components.atoms.NitanmalTextField(
+                    value = contenido,
+                    onValueChange = { contenido = it },
+                    placeholder = { Text(strings.fanBuzonPlaceholder) },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 4,
+                    enabled = !uiState.isEnviandoPregunta
+                )
+                Spacer(Modifier.height(20.dp))
+                NitanmalButton(
+                    text = strings.fanEnviar,
+                    onClick = { fanViewModel.enviarPregunta(contenido.trim()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = uiState.isEnviandoPregunta,
+                    enabled = !uiState.isEnviandoPregunta && contenido.isNotBlank()
+                )
+            }
         }
     }
 }
@@ -370,9 +444,15 @@ fun PortadaPublicaScreen(
 private fun PortadaHome(
     fanViewModel: FanViewModel,
     canalesViewModel: CanalesViewModel,
+    user: com.nitanmal.app.domain.model.User? = null,
     onLoginClick: () -> Unit,
+    onGoToZona: () -> Unit = {},
+    onGoToAjustes: () -> Unit = {},
     onOpen: (DetallePortada) -> Unit
 ) {
+    val nombreCorto = user?.apodo?.takeIf { it.isNotBlank() }
+        ?: user?.name?.split(" ")?.firstOrNull() ?: ""
+
     val strings = rememberStrings()
     val uiState by fanViewModel.uiState.collectAsState()
     val canalesState by canalesViewModel.uiState.collectAsState()
@@ -394,12 +474,30 @@ private fun PortadaHome(
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
-            Button(
-                onClick = onLoginClick,
-                shape = RoundedCornerShape(999.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Text(strings.fanEntrar, fontWeight = FontWeight.Bold)
+            if (user != null) {
+                // Sesión iniciada: el botón muestra tu nombre y abre Ajustes.
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                    modifier = Modifier.clip(RoundedCornerShape(999.dp)).clickable(onClick = onGoToAjustes)
+                ) {
+                    Text(
+                        text = "👤 $nombreCorto",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onLoginClick,
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(strings.fanEntrar, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
@@ -540,6 +638,32 @@ private fun PortadaHome(
                 )
                 .padding(22.dp)
         ) {
+            if (user != null) {
+            Text(
+                text = "⭐ TU ZONA",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Hola, $nombreCorto 👋",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = if (uiState.sorteosPublicos.isNotEmpty())
+                    "Hay un sorteo activo y novedades en la comunidad. Entra a tu zona: contenido exclusivo, descargas y votaciones."
+                else
+                    "Entra a tu zona: contenido exclusivo, descargas, y vota temas y sugiere invitados.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+            BotonGradiente(texto = "Ir a tu zona →", onClick = onGoToZona)
+            } else {
             Text(
                 text = "⭐ ZONA DE REGISTRADOS",
                 style = MaterialTheme.typography.labelMedium,
@@ -593,6 +717,7 @@ private fun PortadaHome(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onLoginClick)
             )
+            }
         }
 
         Spacer(Modifier.height(48.dp))
@@ -715,10 +840,14 @@ private fun PortadaHome(
             subtitulo = strings.fanBuzonDesc
         )
         Spacer(Modifier.height(18.dp))
-        BotonGradiente(texto = strings.fanEnviar, onClick = onLoginClick)
+        BotonGradiente(
+            texto = strings.fanEnviar,
+            onClick = { if (user != null) fanViewModel.setShowPreguntaSheet(true) else onLoginClick() }
+        )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = "Necesitas una cuenta gratis para enviar tu pregunta.",
+            text = if (user != null) "Tu pregunta llega directo al buzón del equipo."
+            else "Necesitas una cuenta gratis para enviar tu pregunta.",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,

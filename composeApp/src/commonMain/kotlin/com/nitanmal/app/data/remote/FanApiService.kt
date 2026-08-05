@@ -14,6 +14,8 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -47,6 +49,7 @@ data class ParticiparResponse(
 
 interface IFanApiService {
     // Rutas públicas (sin token)
+    suspend fun getVersion(): VersionResponse
     suspend fun getLive(): LiveResponse
     suspend fun listEventos(): List<Evento>
     suspend fun listEpisodios(): List<EpisodioFan>
@@ -66,7 +69,100 @@ interface IFanApiService {
     suspend fun setLive(token: String, live: LiveState): LiveState
     suspend fun cerrarSorteo(token: String, id: String)
     suspend fun elegirGanador(token: String, id: String): GanadorResponse
+    suspend fun crearEvento(token: String, input: EventoInput): Evento
+    suspend fun borrarEvento(token: String, id: String)
+    suspend fun crearEpisodio(token: String, input: EpisodioInput): EpisodioFan
+    suspend fun editarEpisodio(token: String, id: String, input: EpisodioInput): EpisodioFan
+    suspend fun borrarEpisodio(token: String, id: String)
+    suspend fun crearSorteo(token: String, input: SorteoInput)
+    suspend fun crearEncuesta(token: String, input: EncuestaInput)
+    suspend fun cerrarEncuesta(token: String, id: String)
+    suspend fun editarSorteo(token: String, input: SorteoEditInput)
+    suspend fun borrarSorteo(token: String, id: String)
+    suspend fun editarEncuesta(token: String, id: String, pregunta: String)
+    suspend fun borrarEncuesta(token: String, id: String)
 }
+
+/** Cuerpo de `POST /zona` con accion=sorteo_editar. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class SorteoEditInput(
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val accion: String = "sorteo_editar",
+    val id: String,
+    val titulo: String,
+    val premio: String = "",
+    val comoParticipar: String = "",
+    val fecha: String = ""
+)
+
+/** Cuerpo de `POST /zona` con accion=encuesta_crear. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class EncuestaInput(
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val accion: String = "encuesta_crear",
+    val pregunta: String,
+    val tipo: String = "si_no",
+    val opciones: List<String> = emptyList()
+)
+
+@Serializable
+data class EventoInput(
+    val date: String,
+    val time: String,
+    val title: String,
+    val type: String,
+    val description: String = "",
+    val premium: Boolean = false
+)
+
+@Serializable
+data class EventoResponse(val evento: Evento? = null, val error: String? = null)
+
+@Serializable
+data class LinksInput(val youtube: String = "", val spotify: String = "", val apple: String = "")
+
+@Serializable
+data class EpisodioInput(
+    val number: Int,
+    val title: String,
+    val description: String = "",
+    val showNotes: String = "",
+    val duration: String = "",
+    val date: String = "",
+    val premium: Boolean = false,
+    val links: LinksInput = LinksInput()
+)
+
+@Serializable
+data class EpisodioAdminResponse(val episodio: EpisodioFan? = null, val error: String? = null)
+
+/** Cuerpo de `POST /zona` con accion=sorteo_crear. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class SorteoInput(
+    // Sin EncodeDefault el campo se omite del JSON y el backend responde "Acción inválida".
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val accion: String = "sorteo_crear",
+    val titulo: String,
+    val premio: String = "",
+    val comoParticipar: String = "",
+    val fecha: String = "",
+    val enlace: String = ""
+)
+
+@Serializable
+data class VersionPlataforma(
+    val versionCode: Int = 0,
+    val versionName: String = "",
+    val minVersionCode: Int = 0,
+    val url: String = "",
+    val notas: String = ""
+)
+
+@Serializable
+data class VersionResponse(
+    val android: VersionPlataforma = VersionPlataforma(),
+    val ios: VersionPlataforma = VersionPlataforma()
+)
 
 @Serializable
 data class Ganador(val nombre: String = "", val email: String = "")
@@ -122,6 +218,9 @@ class FanApiService : IFanApiService {
             extras.forEach { (k, v) -> put(k, JsonPrimitive(v)) }
         }
 
+    override suspend fun getVersion(): VersionResponse =
+        request(HttpMethod.Get, "/version")
+
     override suspend fun getLive(): LiveResponse =
         request(HttpMethod.Get, "/live")
 
@@ -158,6 +257,48 @@ class FanApiService : IFanApiService {
 
     override suspend fun cerrarSorteo(token: String, id: String) =
         request<Unit>(HttpMethod.Post, "/zona", token, zonaBody("sorteo_cerrar", "id" to id))
+
+    override suspend fun crearEvento(token: String, input: EventoInput): Evento =
+        request<EventoResponse>(HttpMethod.Post, "/eventos", token, input).evento
+            ?: throw RuntimeException("El backend no devolvió el evento")
+
+    override suspend fun borrarEvento(token: String, id: String) =
+        request<Unit>(HttpMethod.Delete, "/eventos/$id", token)
+
+    override suspend fun crearEpisodio(token: String, input: EpisodioInput): EpisodioFan =
+        request<EpisodioAdminResponse>(HttpMethod.Post, "/episodios", token, input).episodio
+            ?: throw RuntimeException("El backend no devolvió el episodio")
+
+    override suspend fun editarEpisodio(token: String, id: String, input: EpisodioInput): EpisodioFan =
+        request<EpisodioAdminResponse>(HttpMethod.Put, "/episodios/$id", token, input).episodio
+            ?: throw RuntimeException("El backend no devolvió el episodio")
+
+    override suspend fun borrarEpisodio(token: String, id: String) =
+        request<Unit>(HttpMethod.Delete, "/episodios/$id", token)
+
+    override suspend fun crearSorteo(token: String, input: SorteoInput) =
+        request<Unit>(HttpMethod.Post, "/zona", token, input)
+
+    override suspend fun crearEncuesta(token: String, input: EncuestaInput) =
+        request<Unit>(HttpMethod.Post, "/zona", token, input)
+
+    override suspend fun cerrarEncuesta(token: String, id: String) =
+        request<Unit>(HttpMethod.Post, "/zona", token, zonaBody("encuesta_cerrar", "id" to id))
+
+    override suspend fun editarSorteo(token: String, input: SorteoEditInput) =
+        request<Unit>(HttpMethod.Post, "/zona", token, input)
+
+    override suspend fun borrarSorteo(token: String, id: String) =
+        request<Unit>(HttpMethod.Post, "/zona", token, zonaBody("sorteo_borrar", "id" to id))
+
+    override suspend fun editarEncuesta(token: String, id: String, pregunta: String) =
+        request<Unit>(
+            HttpMethod.Post, "/zona", token,
+            zonaBody("encuesta_editar", "id" to id, "pregunta" to pregunta)
+        )
+
+    override suspend fun borrarEncuesta(token: String, id: String) =
+        request<Unit>(HttpMethod.Post, "/zona", token, zonaBody("encuesta_borrar", "id" to id))
 
     override suspend fun elegirGanador(token: String, id: String): GanadorResponse =
         request(HttpMethod.Post, "/zona", token, zonaBody("sorteo_ganador", "id" to id))

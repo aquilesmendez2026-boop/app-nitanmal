@@ -76,6 +76,9 @@ interface TeamRepository {
     suspend fun updateEpisodioStage(id: String, stage: String, data: StageDataInput): Result<Episodio>
     suspend fun deleteEpisodio(id: String): Result<Unit>
     suspend fun listEquipo(): Result<List<MiembroEquipo>>
+    suspend fun listUsuarios(): Result<List<com.nitanmal.app.domain.model.UsuarioAdmin>>
+    suspend fun guardarSocials(canales: List<Canal>): Result<List<Canal>>
+    suspend fun cambiarRol(userId: String, role: String): Result<Unit>
 
     // Reuniones
     suspend fun listReuniones(): Result<List<Reunion>>

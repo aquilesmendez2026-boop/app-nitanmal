@@ -12,6 +12,7 @@ import com.nitanmal.app.presentation.ui.screens.LoginScreen
 import com.nitanmal.app.presentation.ui.screens.PortadaPublicaScreen
 import com.nitanmal.app.presentation.ui.screens.RootDashboardScreen
 import com.nitanmal.app.presentation.ui.screens.SplashScreen
+import com.nitanmal.app.presentation.viewmodel.ActualizacionViewModel
 import com.nitanmal.app.presentation.viewmodel.AuthViewModel
 import com.nitanmal.app.theme.NitanmalTheme
 import com.nitanmal.app.theme.TemaApp
@@ -37,8 +38,16 @@ fun App() {
             }
             val uiState by authViewModel.uiState.collectAsState()
 
+            // Aviso de nueva versión (consulta pública, no bloquea el arranque).
+            val fanRepository = remember { com.nitanmal.app.data.repository.FanRepositoryImpl(platformAuth) }
+            val actualizacionViewModel = viewModel { ActualizacionViewModel(fanRepository) }
+            val actualizacion by actualizacionViewModel.uiState.collectAsState()
+
             // Restaura la sesión persistida por Firebase sin mostrar el picker.
-            LaunchedEffect(Unit) { authViewModel.tryRestoreSession() }
+            LaunchedEffect(Unit) {
+                authViewModel.tryRestoreSession()
+                actualizacionViewModel.comprobar()
+            }
 
             val user = uiState.currentUser
             // Al completar el login, volvemos al shell.
@@ -67,6 +76,14 @@ fun App() {
                         authViewModel.updateProfile(apodo, pais, region, telefono)
                     },
                     onSignOutClick = { authViewModel.signOut() }
+                )
+            }
+
+            if (actualizacion.mostrar) {
+                com.nitanmal.app.presentation.ui.screens.ActualizacionDialog(
+                    estado = actualizacion,
+                    versionInstalada = actualizacionViewModel.versionInstalada(),
+                    onDescartar = { actualizacionViewModel.descartar() }
                 )
             }
         }

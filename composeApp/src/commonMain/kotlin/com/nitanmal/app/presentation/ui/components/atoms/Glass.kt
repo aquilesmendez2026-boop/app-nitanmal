@@ -25,9 +25,15 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun FondoNocturno(
     modifier: Modifier = Modifier,
+    /** false cuando ya se está dentro de otro FondoNocturno (evita doblar fondo e insets). */
+    activo: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
     val esquema = MaterialTheme.colorScheme
+    if (!activo) {
+        Box(modifier = modifier.fillMaxSize()) { content() }
+        return
+    }
     Box(modifier = modifier.fillMaxSize().background(esquema.background)) {
         Box(
             modifier = Modifier

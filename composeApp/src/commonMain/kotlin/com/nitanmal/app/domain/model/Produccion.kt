@@ -67,6 +67,17 @@ data class MiembroEquipo(
     val nombre: String = ""
 )
 
+/** Usuario del panel admin (GET /usuarios, solo superadmin). */
+@Serializable
+data class UsuarioAdmin(
+    val userId: String,
+    val email: String = "",
+    val name: String = "",
+    val role: String = "miembro",
+    val referidos: Int = 0,
+    val referidoPorEmail: String = ""
+)
+
 // ── Helpers para leer values heterogéneos ──
 
 fun JsonObject?.stringValue(key: String): String =

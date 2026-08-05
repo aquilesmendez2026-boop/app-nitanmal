@@ -122,6 +122,11 @@ class MiZonaViewModel(
         }
     }
 
+    /** Aviso puntual desde la UI (p. ej. "Link copiado"). */
+    fun mostrarInfo(texto: String) {
+        _uiState.value = _uiState.value.copy(info = texto)
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

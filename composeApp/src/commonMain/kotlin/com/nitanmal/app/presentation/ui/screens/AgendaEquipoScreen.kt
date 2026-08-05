@@ -50,10 +50,11 @@ fun AgendaEquipoScreen(
     buzonViewModel: BuzonViewModel,
     onOpenEpisodio: (String) -> Unit,
     onOpenIdea: (String) -> Unit,
+    seccionInicial: Int = -1,
     modifier: Modifier = Modifier
 ) {
     val strings = rememberStrings()
-    var seccion by remember { mutableStateOf<Int?>(null) }
+    var seccion by remember { mutableStateOf(seccionInicial.takeIf { it >= 0 }) }
 
     val prodState by produccionViewModel.uiState.collectAsState()
     val reunionesState by reunionesViewModel.uiState.collectAsState()
@@ -73,7 +74,42 @@ fun AgendaEquipoScreen(
     val ideasActivas = ideasState.notas.count {
         it.estado == null || it.estado == "nueva" || it.estado == "revision"
     }
+    // Pendientes asignados a mí (mismos filtros que MiTrabajoScreen)
+    val hoy = com.nitanmal.app.core.util.todayIsoDate()
+    val misPendientes = remember(prodState.episodios, ideasState.notas, planState.posts) {
+        var total = 0
+        var atrasados = 0
+        prodState.episodios.forEach { ep ->
+            com.nitanmal.app.domain.model.Plantillas.STAGES.forEach { stage ->
+                val etapa = ep.etapa(stage)
+                if (etapa.responsableId == user.id && etapa.estado != "aprobada") {
+                    total++
+                    val fecha = etapa.fecha
+                    if (!fecha.isNullOrBlank() && fecha < hoy) atrasados++
+                }
+            }
+        }
+        ideasState.notas.forEach { n ->
+            if (n.responsableId == user.id &&
+                (n.estado == null || n.estado == "nueva" || n.estado == "revision")
+            ) total++
+        }
+        planState.posts.forEach { p ->
+            if (p.responsableId == user.id &&
+                p.estado in listOf("sugerido", "borrador", "programado")
+            ) total++
+        }
+        total to atrasados
+    }
+
     val secciones = listOf(
+        SeccionAgenda(
+            "💼", strings.navTrabajo,
+            if (misPendientes.first == 0) "Sin pendientes 🎉"
+            else plural(misPendientes.first, "pendiente", "pendientes") +
+                (if (misPendientes.second > 0) " · ${misPendientes.second} atrasados" else ""),
+            badge = misPendientes.second
+        ),
         SeccionAgenda("🎬", strings.navProduccion, plural(prodState.episodios.size, "episodio", "episodios")),
         SeccionAgenda("🤝", strings.navReuniones, plural(reunionesState.proximas.size, "próxima", "próximas")),
         SeccionAgenda("💡", strings.navIdeas, plural(ideasActivas, "idea activa", "ideas activas")),
@@ -116,6 +152,8 @@ fun AgendaEquipoScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    // Fila impar: hueco para que la card mantenga media pantalla
+                    if (par.size == 1) Spacer(Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(12.dp))
             }
@@ -142,7 +180,18 @@ fun AgendaEquipoScreen(
                 )
             }
             when (actual) {
-                0 -> ProduccionScreen(
+                0 -> MiTrabajoScreen(
+                    user = user,
+                    produccionViewModel = produccionViewModel,
+                    ideasViewModel = ideasViewModel,
+                    planificadorViewModel = planificadorViewModel,
+                    onOpenEpisodio = onOpenEpisodio,
+                    onOpenIdea = onOpenIdea,
+                    onGoToPlanner = { seccion = 4 },
+                    modifier = Modifier.weight(1f)
+                )
+
+                1 -> ProduccionScreen(
                     viewModel = produccionViewModel,
                     currentUserId = user.id,
                     isAdmin = isAdmin,
@@ -150,14 +199,14 @@ fun AgendaEquipoScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                1 -> ReunionesScreen(
+                2 -> ReunionesScreen(
                     viewModel = reunionesViewModel,
                     currentUserId = user.id,
                     isAdmin = isAdmin,
                     modifier = Modifier.weight(1f)
                 )
 
-                2 -> IdeasScreen(
+                3 -> IdeasScreen(
                     viewModel = ideasViewModel,
                     currentUserId = user.id,
                     isAdmin = isAdmin,
@@ -165,12 +214,12 @@ fun AgendaEquipoScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                3 -> PlanificadorScreen(
+                4 -> PlanificadorScreen(
                     viewModel = planificadorViewModel,
                     modifier = Modifier.weight(1f)
                 )
 
-                4 -> MetricasEquipoSection(
+                5 -> MetricasEquipoSection(
                     viewModel = canalesViewModel,
                     modifier = Modifier.weight(1f)
                 )

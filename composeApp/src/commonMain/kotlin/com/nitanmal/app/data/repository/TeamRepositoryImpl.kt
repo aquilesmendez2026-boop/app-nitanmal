@@ -190,6 +190,15 @@ class TeamRepositoryImpl(
     override suspend fun deleteEpisodio(id: String): Result<Unit> =
         call { apiService.deleteEpisodio(it, id) }
 
+    override suspend fun listUsuarios(): Result<List<com.nitanmal.app.domain.model.UsuarioAdmin>> =
+        call { apiService.listUsuarios(it).usuarios }
+
+    override suspend fun guardarSocials(canales: List<Canal>): Result<List<Canal>> =
+        call { apiService.guardarSocials(it, canales).canales }
+
+    override suspend fun cambiarRol(userId: String, role: String): Result<Unit> =
+        call { apiService.cambiarRol(it, userId, role) }
+
     override suspend fun listEquipo(): Result<List<MiembroEquipo>> =
         call { apiService.listEquipo(it).equipo }
 

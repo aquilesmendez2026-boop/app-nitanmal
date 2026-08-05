@@ -79,6 +79,9 @@ interface ITeamApiService {
     suspend fun updateEpisodio(token: String, id: String, input: ProduccionUpdateInput): EpisodioResponse
     suspend fun deleteEpisodio(token: String, id: String)
     suspend fun listEquipo(token: String): EquipoResponse
+    suspend fun listUsuarios(token: String): com.nitanmal.app.data.remote.model.UsuariosResponse
+    suspend fun guardarSocials(token: String, canales: List<com.nitanmal.app.domain.model.Canal>): CanalesResponse
+    suspend fun cambiarRol(token: String, userId: String, role: String)
 
     // Reuniones
     suspend fun listReuniones(token: String): ReunionesResponse
@@ -250,6 +253,21 @@ class TeamApiService : ITeamApiService {
 
     override suspend fun listEquipo(token: String): EquipoResponse =
         request(HttpMethod.Get, "/equipo", token)
+
+    override suspend fun listUsuarios(token: String): com.nitanmal.app.data.remote.model.UsuariosResponse =
+        request(HttpMethod.Get, "/usuarios", token)
+
+    override suspend fun guardarSocials(
+        token: String,
+        canales: List<com.nitanmal.app.domain.model.Canal>
+    ): CanalesResponse =
+        request(HttpMethod.Put, "/socials", token, com.nitanmal.app.data.remote.model.CanalesInput(canales))
+
+    override suspend fun cambiarRol(token: String, userId: String, role: String) =
+        request<Unit>(
+            HttpMethod.Put, "/usuarios/$userId/role", token,
+            com.nitanmal.app.data.remote.model.RolInput(role)
+        )
 
     // ── Reuniones ──
     override suspend fun listReuniones(token: String): ReunionesResponse =
